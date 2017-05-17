@@ -1,0 +1,39 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: IOCard1_Drv - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "D:\DOCUME~1\ADMINI~1.UNT\LOCALS~1\Temp\RSPFC.tmp" with contents
+[
+/nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "IOCARD1_DRV_EXPORTS" /FR"Debug/" /Fp"Debug/IOCard1_Drv.pch" /YX /Fo"Debug/" /Fd"Debug/" /FD /GZ /c 
+"E:\work\jinsanctr\IOCard1_Drv\IOCard1.cpp"
+"E:\work\jinsanctr\IOCard1_Drv\IOCard1_Drv.cpp"
+]
+Creating command line "cl.exe @D:\DOCUME~1\ADMINI~1.UNT\LOCALS~1\Temp\RSPFC.tmp" 
+Creating temporary file "D:\DOCUME~1\ADMINI~1.UNT\LOCALS~1\Temp\RSPFD.tmp" with contents
+[
+kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /profile /debug /machine:I386 /out:"Debug/IOCard1_Drv.dll" /implib:"Debug/IOCard1_Drv.lib" 
+.\Debug\IOCard1.obj
+.\Debug\IOCard1_Drv.obj
+]
+Creating command line "link.exe @D:\DOCUME~1\ADMINI~1.UNT\LOCALS~1\Temp\RSPFD.tmp"
+<h3>Output Window</h3>
+Compiling...
+IOCard1.cpp
+IOCard1_Drv.cpp
+Linking...
+   Creating library Debug/IOCard1_Drv.lib and object Debug/IOCard1_Drv.exp
+Creating command line "bscmake.exe /nologo /o"Debug/IOCard1_Drv.bsc"  .\Debug\IOCard1.sbr .\Debug\IOCard1_Drv.sbr"
+Creating browse info file...
+<h3>Output Window</h3>
+
+
+
+<h3>Results</h3>
+IOCard1_Drv.dll - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

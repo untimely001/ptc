@@ -1,0 +1,661 @@
+c语言下的gb2312和utf8及unicode之间的互相转换
+
+上网找了些资料，发现确实挺简单的，不知道为啥被人误导，弄出一个还被广泛转载的CChineseCode类。然而它仅仅针对汉字（每个汉字在UTF-8编码中占3个字节），如果字符串中有英文，就有麻烦了，因为英文在UTF-8编码中只有一个字节。另外有的字符会占用更多的字节。所以这个类并不适用。经过自己的亲自测试，真的是很多问题。再参考一些文章，给出转换方式如下：
+
+
+//gb2312 to unicode
+int wLen = MultiByteToWideChar(CP_ACP, 0, lpszText, -1, NULL, 0);
+LPWSTR wStr = new WCHAR[wLen];
+MultiByteToWideChar(CP_ACP, 0, lpszText, -1, wStr, wLen);
+//unicode to utf8
+int aLen = WideCharToMultiByte(CP_UTF8, 0, wStr, -1, NULL, 0, NULL, NULL);
+char* converted = new char[aLen];
+WideCharToMultiByte(CP_UTF8, 0, wStr, -1, converted, aLen, NULL, NULL);
+//utf8 to unicode
+int wLen2 = MultiByteToWideChar(CP_UTF8, 0, converted, -1, NULL, 0);
+LPWSTR wStr2 = new WCHAR[wLen2];
+MultiByteToWideChar(CP_UTF8, 0, converted, -1, wStr2, wLen2);
+//unicode to gb2312
+int aLen2 = WideCharToMultiByte(CP_ACP, 0, wStr2, -1, NULL, 0, NULL, NULL);
+char* converted2 = new char[aLen2];
+WideCharToMultiByte(CP_ACP, 0, wStr, -1, converted2, aLen2, NULL, NULL);
+
+代码里面还缺少内存的释放，这个就不补上了。自己在vc6测试过，没什么问题。
+
+ 
+
+再引用对《UTF-8与GB2312之间的互换》一文（即提出那个CChineseCode类，作者：吴康彬）的一个经典评论：
+
+搞笑，这种害人害己的文章还有这么多人访问。
+作者光知道 WideCharToMultiByte 可以把 Unicode 转成 GB2312 就不知道也可以把 Unicode 转换为 UTF-8 吗？
+其实这是一个很简单的程序，都被作者搞复杂了。
+要实现 GB2312 （其实是GBK）转换为 UTF-8 其实很简单，先用 MultiByteToWideChar 把 GB2312 转换为 Unicode，再用 WideCharToMultiByte 把 Unicode 转换为 UTF-8 就可以了。
+UTF-8 转换为 GB2312 是个相反的过程，先用 MultiByteToWideChar 把 UTF-8 转换为 Unicode，再用 WideCharToMultiByte 把 Unicode 转换为 GB2312 就可以了。 ( 雁过留声发表于 2007-1-11 9:11:00)
+
+
+
+
+utf8和16位相互转换 c语言实现 
+/*代码在安全性验证处理上不是很好，见谅*/
+
+
+/*
+UTF编码格式转为16位Unicode编码格式
+⑴ 普通ASCII码(单字节)
+   例如a为0x61，即0110 0001；1为0x31，即0011 0001；首位为0，即0*******，表示普通ASCII码。将单字节的ASCII编码转为十六进制Unicode时，只需将其填充为两个字节，即前面填充为0，例如将a表示为0x0061。
+⑵ 多字节编码
+   110***** 10******表示占用两个字节的UTF编码，1110**** 10****** 10******表示占用三个字节的UTF编码。例如 “韩杉你好”的UTF编码为E99FA9 E69D89 E4BDA0 E5A5BD，十六进制Unicode编码为97E9 6749 4F60 597D。“韩”为E99FA9，展开二进制位1110 1001 1001 1111 1010 1001，而有效的Unicode为加下划线部分。将加下划线部分提取出来为1001 0111 1110 1001，转换为十六进制为97E9。“杉”为E69D89，展开二进制位1110 0110 1001 1101 1000 1001，而有效的Unicode为加下划线部分。将加下划线部分提取出来为1010 0111 0100 1001，转换为十六进制为6749。
+*/
+
+/*********************************************************************
+2010-4-29 
+Author:   HanShan 
+function: translate utf to unicode16(chinese)
+EMail:  
+*********************************************************************/
+int translateUtfToUnicode(char *str,char *res)   /*src is source address ，res is destination address*/
+{
+char temp1;   /*save the char*/
+char temp2[3];   /*save the %x of the char*/
+int i=0;
+memset(res,'\0',sizeof(res));
+printf("the str len %d!\n",strlen(str));
+while(i<strlen(str))/*this code translate utf to unicode*/
+{
+   if( !(str[i]&0x080) )/*just ascii ,1 utf code*/
+   {
+    //printf("u 1\n");
+    strcat(res,"00");
+    temp1=str[i++]&0x07F;
+    sprintf(temp2,"%2X",temp1&0x0ff);
+    temp2[2]='\0';
+    strcat(res,temp2);
+   }
+   else if( !( (str[i]&0x0e0)&~0x0c0 ) )/*just 2 utf code*/
+   {
+    //printf("u 2\n");
+    temp1=(str[i]&0x01f)>>2;
+    sprintf(temp2,"%2x",temp1&0x0ff);
+    temp2[2]='\0';
+    strcat(res,temp2);      
+    temp1=str[i++]<<6;
+    temp1|=(str[i++]&0x03f);
+    sprintf(temp2,"%2x",temp1&0x0ff);
+    temp2[2]='\0';
+    strcat(res,temp2); 
+   }
+   else if( !( (str[i]&0x0f0)&~0x0e0 ) )/*just 3 utf code*/
+   {
+    temp1=(str[i++]<<4)&0x0f0;
+    temp1|=((str[i]&0x0ff)>>2)&0x00f;
+    sprintf(temp2,"%2X",temp1&0x0ff);
+    temp2[2]='\0';
+    strcat(res,temp2); 
+   
+    temp1=(str[i++]<<6)&0x0c0;
+    temp1|=str[i++]&0x03f; 
+    sprintf(temp2,"%2X",temp1&0x0ff);
+    temp2[2]='\0';
+    strcat(res,temp2); 
+   }
+   else
+   {
+    printf("the code over 3!\n");
+    break;
+   }
+}/*while*/
+//printf("\n");
+printf("the mes: %d %s\n",strlen(str),str);
+printf("the res: %d %s\n",strlen(res)/2,res);
+}
+
+
+/*
+16位Unicode编码格式转为UTF编码格式
+例如短信内容为“韩杉你好a123p”，其Unicode编码为 97E9 6749 4F60 597D 0061 0031 0032 0033 0070
+⑴ 普通ASCII码(单字节)
+   例如“a”的ASCII码味97，换为16进制即为61，我们只取0061Unicode编码的低8位即可。
+⑵ 多字节编码 
+   16位的Unicode编码为00000XXX XXXXXXXX即为占用两个UTF编码。其他的的16位Unicode编码则占用三个UTF编码。“韩”的Unicode编码为97E9，对应二进制码为1001 0111 1110 1001，跟据前面UTF编码转Unicode编码的逆过程，将其转换为对应的UTF编码为1110 1001 1001 1111 1010 1001，即为 E9 9F A9。
+*/
+
+/*********************************************************************
+2010-6-2 
+Author:   HanShan 
+function: translate unicode16(chinese) to utf
+EMail:  
+*********************************************************************/
+void translateUnicodeToUtf(char *src,char *des,int size) /*src is source address ，res is destination address*/
+{
+int i,j;
+for ( i = 0, j = 0; i < size; i++ , j++)
+{
+   //if ( src[i] )
+   //printf("src[i]=%2x, src[i+1]=%x, i=%d\n",src[i],src[i+1],i);
+   if ( !( src[i] & (0X0FF) ) ) /* judge ascii code , user one utf code */
+   {
+    i++;
+    des[j] = src[i];
+    des[j] = des[j] & (0X07F);
+    //printf("des[j]=%X j=%d\n",des[j],j);
+   }
+   else if ( !( src[i] & (0X0F8) ) )/* use two utf code */
+   {
+    des[j] = 0X0C0;
+    src[i] = src[i] & 0X07;
+    des[j] = des[j] | ( src[i] << 2 );  
+    i++;
+    src[i] = src[i] & 0X0FF;
+    des[j] = des[j] | ( src[i] >> 6 ); 
+    j++;
+    des[j] = 0X080;
+    des[j] = des[j] | ( src[i] & 0X03F ) ;
+   }
+   else /* do as three utf code */
+   {
+    des[j] = 0X0E0;
+    des[j] = des[j] | ( ( src[i] & 0X0FF ) >> 4 );
+    j++;
+    des[j] = 0X080;
+    des[j] = des[j] | ( ( src[i] & 0X0F ) << 2 );
+    i++;
+    des[j] = des[j] | ( ( src[i] & 0X0FF ) >> 6 );
+    j++;
+    des[j] = 0x080;
+    des[j] = des[j] | ( src[i] & 0X3F );
+   }
+}/* for */ 
+des[j] = '\0';
+}
+ 
+
+
+
+
+
+UTF-8, Unicode, GB2312格式串转换之C语言版
+
+（申明：此文章属于原创，若转载请表明作者和原处链接 ）      
+       /*       author:    wu.jian    （吴剑）       English name: Sword
+       /*       date:       2007-12-13
+       /*       purpose:    知识共享
+
+
+       这几天工作上碰到了UTF-8转GB2312的问题，而且是在嵌入式的环境下，没有API可用，查了很多网上的资料，大多调用VC或者linux下自带的接口。在这里我将这两天的工作做个总结。
+       总的来说分为两大步（这里就不介绍基础知识了）：
+       一、UTF8 -> Unicode
+       由于UTF8和Unicode存在着联系，所以不需要任何库就可以直接进行转换。首先要看懂UTF8的编码格式：
+       U-00000000 - U-0000007F: 0xxxxxxx  
+       U-00000080 - U-000007FF: 110xxxxx 10xxxxxx  
+       U-00000800 - U-0000FFFF: 1110xxxx 10xxxxxx 10xxxxxx  
+       U-00010000 - U-001FFFFF: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx  
+       U-00200000 - U-03FFFFFF: 111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx  
+       U-04000000 - U-7FFFFFFF: 1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx  
+       前面几个1就代表后面几个字节是属于一起的。如果要解析一长串UTF8格式的字符串，这点就很有用了。下面这个函数就是判断前面几个1的（这 里有define APP_PRINT printf，这样当release的时候将这个宏定义为空就行了，不需要一个一个去改，又方便重新调试）：
+       int GetUtf8ByteNumForWord(u8 firstCh)
+       {
+           u8 temp = 0x80;
+           int num = 0;
+           while (temp & firstCh)
+           {
+                 num++;
+                  temp = (temp >> 1);
+            }
+
+        APP_PRINT("the num is: %d", num);
+         return num;
+       }
+       利用这个函数可以得到字符串中那几个字节是一起的。因为UTF8最大只有6个字节，所以就根据返回值来处理这里我只处理了3个字节和1个字节的UTF8的编码，因为一般来说中文在UTF8中是3个字节。
+//将len个字节的UTF8格式的转换成GB2312格式存放在temp预先申请好的缓冲区中
+void Utf8ToGb2312(const char* utf8, int len, char *temp)
+{
+        APP_PRINT("utf8->unicode: \n");
+        APP_PRINT("utf8: [");
+        for (int k = 0; k < len; k++)
+        {
+               APP_PRINT("%02x ", utf8[k]);
+        }
+        APP_PRINT("]\n");
+        int byteCount = 0;
+        int i = 0;
+        int j = 0;
+        u16 unicodeKey = 0;
+        u16 gbKey = 0;
+       //循环解析
+        while (i < len)
+       {   
+         switch(GetUtf8ByteNumForWord((u8)utf8[i]))
+         {
+          case 0:
+                 temp[j] = utf8[i];
+                 byteCount = 1;
+           break;
+          case 2:
+           temp[j] = utf8[i];
+           temp[j + 1] = utf8[i + 1];
+           byteCount = 2;
+           break;
+         case 3:
+                  //这里就开始进行UTF8->Unicode
+                  temp[j + 1] = ((utf8[i] & 0x0F) << 4) | ((utf8[i + 1] >> 2) & 0x0F);
+                  temp[j] = ((utf8[i + 1] & 0x03) << 6) + (utf8[i + 2] & 0x3F);
+                //取得Unicode的值
+                  memcpy(&unicodeKey, (temp + j), 2);
+                  APP_PRINT("unicode key is: 0x%04X\n", unicodeKey);
+                   //根据这个值查表取得对应的GB2312的值
+                 gbKey = SearchCodeTable(unicodeKey);
+                 APP_PRINT("gb2312 key is: 0x%04X\n", gbKey);
+    
+                 if (gbKey != 0)
+                 {
+                        //here change the byte
+                         //不为0表示搜索到，将高低两个字节调换调成我要的形式
+                        gbKey = (gbKey >> 8) | (gbKey << 8);
+                        APP_PRINT("after changing, gb2312 key is: 0x%04X\n", gbKey);
+                        memcpy((temp + j), &gbKey, 2);
+                   }
+
+                 byteCount = 3;
+           break;
+           case 4:
+           byteCount = 4;
+           break;
+          case 5:
+           byteCount = 5;
+           break;
+          case 6:
+           byteCount = 6;
+           break;
+    
+          default:
+           APP_PRINT("the len is more than 6\n");
+           break;    
+         }
+
+         i += byteCount;
+         if (byteCount == 1)
+         {
+                j++;
+         }
+         else
+         {
+                j += 2;
+         }
+  
+        }
+        APP_PRINT("utf8: [");
+        for (k = 0; k < j; k++)
+        {
+               APP_PRINT("%02x ", temp[k]);
+        }
+        APP_PRINT("]\n");
+}
+       二、下面主要谈谈利用查表法来进行Unicode->GB2312的转换，首先下载码表，一般码表都是将GB2312的放在前 面，Unicode放在后面，这样对于我们来说不方便使用，所以我转换了下，将Unicode放在前面，而且按照从小到大排好序。（这里只需要考虑都为两 个字节的情况，因为前面的UTF8->Unicode并没有将单字节的ASCII转换成Unicode）
+             (1)做表：(可以到这里下载：http://blog.91bs.com/?action=show&id=20，这里谢谢渣渣的猪窝)
+             这个是原来的样子：
+             0x8140 0x4E02 #CJK UNIFIED IDEOGRAPH
+             0x8141 0x4E04 #CJK UNIFIED IDEOGRAPH
+             0x8142 0x4E05 #CJK UNIFIED IDEOGRAPH
+             先弄成（这个可以写个小程序来做，我就是在VC上做的，如果需要可以联系我）：
+             { 0x4E02 ，0x8140 }, //CJK UNIFIED IDEOGRAPH
+             { 0x4E04 ，0x8141 }, //CJK UNIFIED IDEOGRAPH
+             { 0x4E05 ，0x8142 }, //CJK UNIFIED IDEOGRAPH
+             这样就可以把这些放在.h文件中了，下面是我的定义：
+             typedef struct unicode_gb
+             {
+                    unsigned short unicode;
+                    unsigned short gb;
+             } UNICODE_GB;
+
+             UNICODE_GB code_table[] = 
+             {
+                   { 0x4E02, 0x8140 },   //CJK UNIFIED IDEOGRAPH
+                   { 0x4E04, 0x8141 }, //CJK UNIFIED IDEOGRAPH
+                   { 0x4E05, 0x8142 }, //CJK UNIFIED IDEOGRAPH
+                   。。。。。。省略
+             下面这一步也很简单，在VC中用冒泡排序法对整个表进行排序，这里是按照unicode值进行排序，把排序后的最终结果打印出 来，在cmd下运行name > 1.txt就输出到文件，这样就有了一个按照unicode排好序的unicode->gb2312码表。以下是源代码：
+    int main(int argc, char *argv[])
+{
+
+     int num = 0;
+     UNICODE_GB temp;
+     int i = 0;
+     int j = 0;
+
+     num = sizeof(code_table) / sizeof(UNICODE_GB);
+
+     printf("struct size: %d | total size: %d | num is: %d \n", 
+     sizeof(UNICODE_GB), sizeof(code_table), num);
+
+     for (i = 0; i < num; i++)
+     {
+         for (j = 1; j < num - i; j++)
+         {
+             if (code_table[j - 1].unicode > code_table[j].unicode)
+             {
+                 temp.unicode = code_table[j - 1].unicode;
+                 temp.gb = code_table[j - 1].gb;
+                 code_table[j - 1].unicode = code_table[j].unicode;
+                 code_table[j - 1].gb = code_table[j].gb;
+                 code_table[j].unicode = temp.unicode;
+                 code_table[j].gb = temp.gb;
+             }
+         }
+     }
+
+     printf("here is the code table sorted by unicode\n\n");
+
+     for (i = 0; i < num; i++)
+     {
+         printf("{\t0x%04X,\t0x%04X\t},\t\n", code_table[i].unicode, code_table[i].gb);
+      }
+
+        printf("\n\n print over!\n");
+    //以下注释掉的其实就是我用来对原来的码表添加，{，}等用的
+    /*
+     char buff[100];
+     char buff_1[100]; 
+     FILE* fp = NULL;
+     FILE *fp_1 = NULL;
+
+     memset(buff, 0, 100);
+     memset(buff_1, 0, 100);
+     fp = fopen("table.txt", "rw");
+     fp_1 = fopen("table_1.txt", "a+");
+
+     if ((fp == NULL) || (fp_1 == NULL))
+     {
+         printf("open file error!\n");
+         return 1;
+     }
+
+     while (fgets(buff, 100, fp) != NULL)
+     {
+         buff[8] = ',';
+
+         fputs(buff, fp_1);
+     }
+*/
+
+     return 0;
+}
+       最后就是搜索算法了，前面已经排好序了，现在我们把排好序的码表放在我们真正需要的.h文件中。大家应该猜我用什么算法搜索了吧，二分法。
+#define CODE_TABLE_SIZE 21791
+//这个表是死的，所以就直接用宏表示长度，不用每次都用size，不过这样可能对移植性不好。
+u16 SearchCodeTable(u16 unicodeKey)
+{
+     int first = 0;
+     int end = CODE_TABLE_SIZE - 1;
+     int mid = 0;
+
+     while (first <= end)
+     {
+         mid = (first + end) / 2;
+
+         if (code_table[mid].unicode == unicodeKey)
+         {
+             return code_table[mid].gb;
+         }
+         else if (code_table[mid].unicode > unicodeKey)
+         {
+             end = mid - 1;
+         }
+         else 
+         {
+             first = mid + 1;
+         }
+     }
+     return 0;
+}
+
+
+
+[C语言]字符串处理 - ANSI - Unicode - UTF8 转换
+
+#include <stdio.h>
+#include <windows.h>
+#include <locale.h>
+#define BUFF_SIZE 1024
+
+wchar_t * ANSIToUnicode( const char* str )
+{
+     int textlen ;
+     wchar_t * result;
+     textlen = MultiByteToWideChar( CP_ACP, 0, str,-1, NULL,0 ); 
+     result = (wchar_t *)malloc((textlen+1)*sizeof(wchar_t)); 
+     memset(result,0,(textlen+1)*sizeof(wchar_t)); 
+     MultiByteToWideChar(CP_ACP, 0,str,-1,(LPWSTR)result,textlen ); 
+     return result; 
+}
+
+char * UnicodeToANSI( const wchar_t* str )
+{
+     char* result;
+     int textlen;
+     textlen = WideCharToMultiByte( CP_ACP, 0, str, -1, NULL, 0, NULL, NULL );
+     result =(char *)malloc((textlen+1)*sizeof(char));
+     memset( result, 0, sizeof(char) * ( textlen + 1 ) );
+     WideCharToMultiByte( CP_ACP, 0, str, -1, result, textlen, NULL, NULL );
+     return result;
+}
+
+wchar_t * UTF8ToUnicode( const char* str )
+{
+     int textlen ;
+     wchar_t * result;
+     textlen = MultiByteToWideChar( CP_UTF8, 0, str,-1, NULL,0 ); 
+     result = (wchar_t *)malloc((textlen+1)*sizeof(wchar_t)); 
+     memset(result,0,(textlen+1)*sizeof(wchar_t)); 
+     MultiByteToWideChar(CP_UTF8, 0,str,-1,(LPWSTR)result,textlen ); 
+     return result; 
+}
+
+char * UnicodeToUTF8( const wchar_t* str )
+{
+     char* result;
+     int textlen;
+     textlen = WideCharToMultiByte( CP_UTF8, 0, str, -1, NULL, 0, NULL, NULL );
+     result =(char *)malloc((textlen+1)*sizeof(char));
+     memset(result, 0, sizeof(char) * ( textlen + 1 ) );
+     WideCharToMultiByte( CP_UTF8, 0, str, -1, result, textlen, NULL, NULL );
+     return result;
+}
+/*宽字符转换为多字符Unicode - ANSI*/
+char* w2m(const wchar_t* wcs)
+{
+      int len;
+      char* buf;
+      len =wcstombs(NULL,wcs,0);
+      if (len == 0)
+          return NULL;
+      buf = (char *)malloc(sizeof(char)*(len+1));
+      memset(buf, 0, sizeof(char) *(len+1));
+      len =wcstombs(buf,wcs,len+1);
+      return buf;
+}
+/*多字符转换为宽字符ANSI - Unicode*/
+wchar_t* m2w(const char* mbs)
+{
+      int len;
+      wchar_t* buf;
+      len =mbstowcs(NULL,mbs,0);
+      if (len == 0)
+          return NULL;
+      buf = (wchar_t *)malloc(sizeof(wchar_t)*(len+1));
+      memset(buf, 0, sizeof(wchar_t) *(len+1));
+      len =mbstowcs(buf,mbs,len+1);
+      return buf;
+}
+
+char* ANSIToUTF8(const char* str)
+{
+     return UnicodeToUTF8(ANSIToUnicode(str));
+}
+
+char* UTF8ToANSI(const char* str)
+{
+     return UnicodeToANSI(UTF8ToUnicode(str));
+}
+
+int main()
+{
+     /*使用wcstombs和mbstowcs之前必须调用setlocale，以便决定内码*/
+     setlocale(LC_ALL,".936");
+     /*假定有一个Unicode(UTF-16LE)编码的文件，将其打开，重新编码为ANSI，写入aa.txt中，再继续编码回Unicode，写入aw.txt中*/
+     /*如果不存在a.txt文件，则程序出错，没有做错误处理*/
+     char* filename = "a.txt";
+     char* filenamea = "aa.txt";
+     char* filenamew = "aw.txt";
+     FILE* input=fopen( filename, "rb"); 
+     FILE* inputa=fopen( filenamea, "wb"); 
+     FILE* inputw=fopen( filenamew, "wb"); 
+     wchar_t * buf ;
+     /*BOE设置，UTF-16LE的BOE为FEFF，如果不先将其读取出来，wcstombs会调用失败*/
+     fgetwc(input);
+     fputwc(0xFEFF,inputw);
+     /*开始读取文件*/
+     while(!feof(input))
+     {
+        buf = (wchar_t *)malloc(sizeof(wchar_t)*BUFF_SIZE) ;
+        memset(buf, 0, sizeof(wchar_t) * BUFF_SIZE );
+        fgetws(buf, BUFF_SIZE, input);
+        fputs(w2m(buf), inputa);
+        fputws(m2w(w2m(buf)), inputw);
+     }
+     /*后续处理*/
+     fclose(input);
+     fclose(inputa);
+     fclose(inputw);
+     free(buf);
+
+     return 0;
+}
+ 
+
+
+MultiByteToWideChar和WideCharToMultiByte的正确使用方法及参数详解 
+
+
+　本文内容摘自《Windows核心编程》(第五版)Page26。
+　　文中已经详细阐述了这两个函数的用法，我这里仅仅作为备忘录。函数的参数请参考百度百科MultiByteToWideChar和WideCharToMultiByte。
+函数原型：
+ 
+int MultiByteToWideChar( 
+　　　　UINT CodePage, 
+　　　　DWORD dwFlags, 
+　　　　LPCSTR lpMultiByteStr, 
+　　　　int cchMultiByte, 
+　　　　LPWSTR lpWideCharStr, 
+　　　　int cchWideChar 
+　　); 
+int WideCharToMultiByte(
+　　　　UINT CodePage, 
+　　　　DWORD dwFlags, 
+　　　　LPWSTR lpWideCharStr, 
+　　　　int cchWideChar, 
+　　　　LPCSTR lpMultiByteStr, 
+　　　　int cchMultiByte, 
+　　　　LPCSTR lpDefaultChar, 
+　　　　PBOOL pfUsedDefaultChar 
+　　);
+ 
+在考虑安全使用的情况下，使用的一般步骤如下：
+　　MultiByteToWideChar：
+　　1)调用MultiByteToWideChar，为lpWideCharStr参数传入NULL，为cchWideChar参数传入0，为cchMultiByte参数传入-1；
+　　2)分配一块足够容纳转换后Unicode字符串的内存，它的大小是上一个MultiByteToWideChar调用的返回值乘以sizeof(wchar_t)；
+　　3)再次调用MultiByteToWideChar，这一次将缓冲区地址作为lpWideCharStr参数的值传入，将第一次MultiByteToWideChar调用的返回值乘以sizeof(wchar_t) 后得到的大小的作为cchWideChar参数的值传入；
+　　4)使用转换后的字符串；
+　　5)释放Unicode字符串占用的内存块。 
+　　WideCharToMultiByte：
+　　采取的步骤和前面的相似，唯一不同的是，返回值直接就是确保转换成功所需的字节数，所以无需执行乘法运算。
+　　在《Windows核心编程》中第二章(字符和字符串处理)提到很多字符和字符串的规范处理方法，如字符串函数的问题，到底是使用C库的呢，还是使用MS自己实现带_s后缀的。 
+ 【附】《Windows核心编程》第二章pdf下载：http://dl.dbank.com/c0parcjxsv
+　
+　　MultiByteToWideChar的与WideCharToMultiByte的参数详解
+　　下面部分摘自:http://www.cnblogs.com/wanghao111/archive/2009/05/25/1489021.html#2270293
+　　WideCharToMultiByte 此函数把宽字符串转换成指定的新的字符串，如ANSI，UTF8等，新字符串不必是多字节字符集。
+参数:
+ 
+CodePage： 指定要转换成的字符集代码页，它可以是任何已经安装的或系统自带的字符集，你也可以使用如下所示代码页之一。 
+     CP_ACP 当前系统ANSI代码页 
+     CP_MACCP 当前系统Macintosh代码页 
+     CP_OEMCP 当前系统OEM代码页，一种原始设备制造商硬件扫描码 
+     CP_SYMBOL Symbol代码页，用于Windows 2000及以后版本，我不明白是什么 
+     CP_THREAD_ACP 当前线程ANSI代码页，用于Windows 2000及以后版本，我不明白是什么 
+     CP_UTF7 UTF-7，设置此值时lpDefaultChar和lpUsedDefaultChar都必须为NULL 
+     CP_UTF8 UTF-8，设置此值时lpDefaultChar和lpUsedDefaultChar都必须为NULL  
+     /*　我想最常用的应该是CP_ACP和CP_UTF8了，前者将宽字符转换为ANSI，后者转换为UTF8。 */
+ 
+ 
+dwFlags： 指定如何处理没有转换的字符， 但不设此参数函数会运行的更快一些，我都是把它设为0。 可设的值如下表所示： 
+     WC_NO_BEST_FIT_CHARS 把不能直接转换成相应多字节字符的Unicode字符转换成lpDefaultChar指定的默认字符。也就是说，如果把Unicode转换成多字节字符，然后再转换回来，你并不一定得到相同的Unicode字符，因为这期间可能使用了默认字符。此选项可以单独使用，也可以和其他选项一起使用。 
+     WC_COMPOSITECHECK 把合成字符转换成预制的字符。它可以与后三个选项中的任何一个组合使用，如果没有与他们中的任何一个组合，则与选项WC_SEPCHARS相同。 
+     WC_ERR_INVALID_CHARS 此选项会致使函数遇到无效字符时失败返回，并且GetLastError会返回错误码ERROR_NO_UNICODE_TRANSLATION。否则函数会自动丢弃非法字符。此选项只能用于UTF8。 
+     WC_DISCARDNS 转换时丢弃不占空间的字符，与WC_COMPOSITECHECK一起使用 
+     WC_SEPCHARS 转换时产生单独的字符，此是默认转换选项，与WC_COMPOSITECHECK一起使用 
+     WC_DEFAULTCHAR 转换时使用默认字符代替例外的字符，(最常见的如’?’)，与WC_COMPOSITECHECK一起使用。 
+     /*  当指定WC_COMPOSITECHECK时，函数会将合成字符转换成预制字符。合成字符由一个基字符和一个不占空间的字符(如欧洲国家及汉语拼音的音标)组成，每一个都有不同的字符值。预制字符有一个用于表示基字符和不占空间字符的合成体的单一的字符值。 当指定WC_COMPOSITECHECK选项时，也可以使用上表列出的最后3个选项来定制预制字符的转换规则。这些选项决定了函数在遇到宽字符串的合成字符没有对应的预制字符时的行为，他们与WC_COMPOSITECHECK一起使用，如果都没有指定，函数默认WC_SEPCHARS。 对于下列代码页，dwFlags必须为0，否则函数返回错误码ERROR_INVALID_FLAGS。 50220 50221 50222 50225 50227 50229 52936 54936 57002到57011 65000(UTF7) 42(Symbol) 
+　　 对于UTF8，dwFlags必须为0或WC_ERR_INVALID_CHARS，否则函数都将失败返回并设置错误码ERROR_INVALID_FLAGS，你可以调用GetLastError获得。  */
+ 
+ 
+lpWideCharStr：待转换的宽字符串。 
+cchWideChar：待转换宽字符串的长度，-1表示转换到字符串结尾。 
+lpMultiByteStr：接收转换后输出新串的缓冲区。 
+cbMultiByte：输出缓冲区大小，如果为0，lpMultiByteStr将被忽略，函数将返回所需缓冲区大小而不使用lpMultiByteStr。 
+lpDefaultChar：指向字符的指针， 在指定编码里找不到相应字符时使用此字符作为默认字符代替。 如果为NULL则使用系统默认字符。对于要求此参数为NULL的dwFlags而使用此参数，函数将失败返回并设置错误码ERROR_INVALID_PARAMETER。 
+lpUsedDefaultChar：开关变量的指针，用以表明是否使用过默认字符。对于要求此参数为NULL的dwFlags而使用此参数，函数将失败返回并设置错误码ERROR_INVALID_PARAMETER。lpDefaultChar和lpUsedDefaultChar都设为NULL，函数会更快一些。 
+　　/*  注意：函数WideCharToMultiByte使用不当，会给影响程序的安全。调用此函数会很容易导致内存泄漏，因为lpWideCharStr指向的输入缓冲区大小是宽字符数，而lpMultiByteStr指向的输出缓冲区大小是字节数。为了避免内存泄漏，应确保为输出缓冲区指定合适的大小。我的方法是先使cbMultiByte为0调用WideCharToMultiByte一次以获得所需缓冲区大小，为缓冲区分配空间，然后再次调用WideCharToMultiByte填充缓冲区，详见下面的代码。另外，从Unicode UTF16向非Unicode字符集转换可能会导致数据丢失，因为该字符集可能无法找到表示特定Unicode数据的字符。  */
+返回值:如果函数成功，且cbMultiByte非0，返回写入lpMultiByteStr的字节数(包括字符串结尾的null)；cbMultiByte为0，则返回转换所需字节数。函数失败，返回0。  
+ 
+　　MultiByteToWideChar 是多字节字符到宽字符转换函数。
+　　此函数把多字节字符串转换成宽字符串(Unicode)，待转换的字符串并不一定是多字节的。 
+　　此函数的参数，返回值及注意事项参见上面函数WideCharToMultiByte的说明，这里只对dwFlags做简单解释。 
+ 
+dwFlags：指定是否转换成预制字符或合成的宽字符，对控制字符是否使用像形文字，以及怎样处理无效字符。 
+　　　　MB_PRECOMPOSED 总是使用预制字符，即有单个预制字符时，就不会使用分解的基字符和不占空间字符。此为函数的默认选项，不能和MB_COMPOSITE合用 
+　　　　MB_COMPOSITE 总是使用分解字符，即总是使用基字符+不占空间字符的方式 
+　　　　MB_ERR_INVALID_CHARS 设置此选项，函数遇到非法字符就失败并返回错误码ERROR_NO_UNICODE_TRANSLATION，否则丢弃非法字符 
+　　　　MB_USEGLYPHCHARS 使用像形字符代替控制字符 
+　　　　/*　　对于下列代码页，dwFlags必须为0，否则函数返回错误码ERROR_INVALID_FLAGS。50220 50221 50222 50225 50227 50229 52936 54936 57002到57011 65000(UTF7) 42(Symbol)。对于UTF8，dwFlags必须为0或MB_ERR_INVALID_CHARS，否则函数都将失败并返回错误码ERROR_INVALID_FLAGS */
+ 
+　　另外补充一个例子，供大家参考，运行环境(vc 6.0, 32位盗版win7旗舰版)
+
+
+
+#include <windows.h>
+int APIENTRY WinMain(HINSTANCE hInstance,
+                     HINSTANCE hPrevInstance,
+                     LPSTR     lpCmdLine,
+                     int       nCmdShow)
+{
+     // TODO: Place code here.
+    wchar_t wszTest[] = L"ziwuge";
+    wchar_t wszTestNew[] = L"ziwuge博客园";
+    int nwszTestLen = lstrlenW(wszTest);            // 6
+    int nwszTestNewLen = lstrlenW(wszTestNew);        // 9
+    int nwszTestSize = sizeof(wszTest);                // 14
+    int nwszTestNewSize = sizeof(wszTestNew);        //    20
+    int nChar = WideCharToMultiByte(CP_ACP, 0, wszTestNew, -1, NULL, 0, NULL, NULL);    // 13, 返回结果已包含'\0'所要占用的内存
+    nChar = nChar * sizeof(char);                    // 13, 其实这一步可不需要,请见本文前面解释
+    char* szResult = new char[nChar];
+    ZeroMemory(szResult, nChar);
+    int i = WideCharToMultiByte(CP_ACP, 0, wszTestNew, -1, szResult, nChar, NULL, NULL);    // 13
+    int nszResultLen = lstrlenA(szResult);            // 12
+    int nszResultSize = sizeof(szResult);            // 4
+
+    char szTest[] = "ziwuge";
+    char szTestNew[] = "ziwuge博客园";
+    int nszTestLen = lstrlenA(szTest);                // 6
+    int nszTestNewLen = lstrlenA(szTestNew);        // 12
+    int nszTestSize = sizeof(szTest);                // 7
+    int nszTestNewSize = sizeof(szTestNew);            // 13
+    int nWChar = MultiByteToWideChar(CP_ACP, 0, szTestNew, -1, NULL, 0);        // 10, 返回结果已包含'\0'所要占用的内存
+    nWChar = nWChar * sizeof(wchar_t);                // 20
+    wchar_t* wszResult = new wchar_t[nWChar];
+    ZeroMemory(wszResult, nWChar);
+    int j = MultiByteToWideChar(CP_ACP, 0, szTestNew, -1, wszResult, nWChar);    // 10
+    int nwszResultLen = lstrlenW(wszResult);        // 9
+    int nwszResultSize = sizeof(wszResult);            // 4
+    return 0;
+}
+

@@ -1,0 +1,226 @@
+Winsock 错误代码 本列表按错误编号列出了所有 Winsock 错误代码。但要注意的是，该列表没有包括标记为“BSD特有”的 Winsock 错误，也没有包括那些尚未正式列入规范的错误。此外，与 Win32 错误有着直接对应关系的 Winsock 错误列在本附录末尾。 
+
+
+10004—WSAEINTR
+函数调用中断。该错误表明由于对 WSACancelBlockingCall 的调用，造成了一次调用被强行中断。
+
+10009—WSAEBADF
+文件句柄错误。该错误表明提供的文件句柄无效。在 Microsoft Windows CE下，socket函数可能返回这个错误，表明共享串口处于“忙”状态。
+
+10013—WSAEACCES
+权限被拒。尝试对套接字进行操作，但被禁止。若试图在 sendto 或 WSASendTo 中使用一个广播地址，但是尚未用 setsockopt 和 SO_BROADCAST 这两个选项设置广播权限，便会产生这类错误。 
+
+10014—WSAEFAULT
+地址无效。传给 Winsock 函数的指针地址无效。若指定的缓冲区太小，也会产生这个错误。
+
+10022—WSAEINVAL
+参数无效。指定了一个无效参数。例如，假如为 WSAIoctl 调用指定了一个无效控制代码，便会产生这个错误。另外，它也可能表明套接字当前的状态有错，例如在一个目前没有监听的套接字上调用 accept 或 WSAAccept。
+
+10024—WSAEMFILE
+打开文件过多。提示打开的套接字太多了。通常，Microsoft提供者只受到系统内可用资源数量的限制。
+
+
+10035—WSAEWOULDBLOCK
+资源暂时不可用。对非锁定套接字来说，如果请求操作不能立即执行的话，通常会返回这个错误。比如说，在一个非暂停套接字上调用 connect，就会返回这个错误。因为连接请求不能立即执行。
+
+
+10036—WSAEINPROGRESS
+操作正在进行中。当前正在执行非锁定操作。一般来说不会出现这个错误，除非正在开发16位 Winsock 应用程序。 
+
+
+10037—WSAEALREADY
+操作已完成。一般来说，在非锁定套接字上尝试已处于进程中的操作时，会产生这个错误。比如，在一个已处于连接进程的非锁定套接字上，再一次调用 connect 或 WSAConnect。另外，服务提供者处于执行回调函数（针对支持回调例程的 Winsock函数）的进程中时，也会出现这个错误。
+
+10038—WSAENOTSOCK
+无效套接字上的套接字操作。任何一个把 SOCKET 句柄当作参数的 Winsock 函数都会返回这个错误。它表明提供的套接字句柄无效。
+
+10039—WSAEDESTADDRREQ
+需要目标地址。这个错误表明没有提供具体地址。比方说，假如在调用 sendto 时，将目标地址设为 INADDR_ANY（任意地址），便会返回这个错误。
+
+10040—WSAEMSGSIZE
+消息过长。这个错误的含义很多。如果在一个数据报套接字上发送一条消息，这条消息对内部缓冲区而言太大的话，就会产生这个错误。再比如，由于网络本身的限制，使一条消息过长，也会产生这个错误。最后，如果收到数据报之后，缓冲区太小，不能接收消息时，也会产生这个错误。 
+
+10041—WSAEPROTOTYPE
+套接字协议类型有误。在 socket 或W S A  socket 调用中指定的协议不支持指定的套接字类型。比如，要求建立 SOCK_STREAM类型的一个 IP 套接字，同时指定协议为 PPROTO_UDP，便会产生这样的错误。 
+
+
+10042—WSAENOPROTOOPT
+协议选项错误。表明在 getsockopt 或 setsockopt 调用中，指定的套接字选项或级别不明、未获支持或者无效。
+ 
+10043——WSAEPROTONOSUPPORT
+不支持的协议。系统中没有安装请求的协议或没有相应的实施方案。比如，如果系统中没有安装 TCP/IP，而试着建立 TCP 或 UDP 套接字时，就会产生这个错误。
+
+10044—WSAESOCKTNOSUPPORT
+不支持的套接字类型。对指定的地址家族来说，没有相应的具体套接字类型支持。比如，在向一个不支持原始套接字的协议请求建立一个 SOCK_RAW 套接字类型时，就会产生这个错误。
+
+10045—WSAEOPNOTSUPP
+不支持的操作。表明针对指定的对象，试图采取的操作未获支持。通常，如果试着在一个不支持调用 Winsock函数的套接字上调用了Winsock 时，就会产生这个错误。比如，在一个数据报套接字上调用 accept 或 WSAAccept函数时，就会产生这样的错误。
+
+10046—WSAEPFNOSUPPORT
+不支持的协议家族。请求的协议家族不存在，或系统内尚未安装。多数情况下，这个错误可与 WSAEAFNOSUPPORT 互换（两者等价）；后者出现得更为频繁。
+
+10047—WSAEAFNOSUPPORT
+地址家族不支持请求的操作。对套接字类型不支持的操作来说，在试着执行它时，就会出现这个错误。比如，在类型为 SOCK_STREAM 的一个套接字上调用 sendto 或 WSASendTo 函数时，就会产生这个错误。另外，在调用 socket 或 WSASocket 函数的时候，若同时请求了一个无效的地址家族、套接字类型及协议组合，也会产生这个错误。
+
+10048—WSAEADDRINUSE
+地址正在使用。正常情况下，每个套接字只允许使用一个套接字地址（例如，一个 IP 套接字地址由本地 IP 地址及端口号组成）。这个错误一般和 bind、connect 和 WSAConnect 这三个函数有关。可在 setsockopt 函数中设置套接字选项 SO_REUSEADDR，允许多个套接字访问同一个本地I P地址及端口号（详情见第9章）。
+
+10049—WSAEADDRNOTAVAIL
+不能分配请求的地址。API 调用中指定的地址对那个函数来说无效时，就会产生这样的错误。例如，若在 bind 调用中指定一个 IP 地址，但却没有对应的本地 IP 接口，便会产生这样的错
+误。另外，通过 connect、WSAConnect、sendto、WSASendTo 和 WSAJoinLeaf 这四个函数为准备连接的远程计算机指定端口0时，也会产生这样的错误。
+
+10050—WSAENETDOWN
+网络断开。试图采取一项操作时，却发现网络连接中断。这可能是由于网络堆栈的错误，网络接口的故障，或者本地网络的问题造成的。
+
+10051—WSAENETUNREACH
+网络不可抵达。试图采取一项操作时，却发现目标网络不可抵达（不可访问）。这意味着本地主机不知道如何抵达一个远程主机。换言之，目前没有已知的路由可抵达那个目标主机。
+
+10052—WSAENETRESET
+网络重设时断开了连接。由于“保持活动”操作检测到一个错误，造成网络连接的中断。若在一个已经无效的连接之上，通过 setsockopt 函数设置 SO_KEEPALIVE 选项，也会出现这样的错误。
+
+10053—WSAECONNABORTED
+软件造成连接取消。由于软件错误，造成一个已经建立的连接被取消。典型情况下，这意味着连接是由于协议或超时错误而被取消的。
+
+10054—WSAECONNRESET
+连接被对方重设。一个已经建立的连接被远程主机强行关闭。若远程主机上的进程异常中止运行（由于内存冲突或硬件故障），或者针对套接字执行了一次强行关闭，便会产生这样的错误。针对强行关闭的情况，可用 SO_LINGER 套接字选项和 setsockopt 来配置一个套接字（欲知详情，请参阅第9章）。
+
+10055—WSAENOBUFS
+没有缓冲区空间。由于系统缺少足够的缓冲区空间，请求的操作不能执行。
+
+10056—WSAEISCONN
+套接字已经连接。表明在一个已建立连接的套接字上，试图再建立一个连接。要注意的是，数据报和数据流套接字均有可能出现这样的错误。使用数据报套接字时，假如事先已通过 connect 或 WSAConnect 调用，为数据报通信关联了一个端点的地址，那么以后试图再次调用 sendto 或 WSASendTo，便会产生这样的错误。
+
+10057—WSAENOTCONN
+套接字尚未连接。若在一个尚未建立连接的“面向连接”套接字上发出数据收发请求，便会产生这样的错误。 
+
+10058—WSAESHUTDOWN
+套接字关闭后不能发送。表明已通过对 shutdown 的一次调用，部分关闭了套接字，但事后又请求进行数据的收发操作。要注意的是，这种错误只会在已经关闭的那个数据流动方向上才会发生。举个例子来说，完成数据发送后，若调用 shutdown，那么以后任何数据发送调用都会产生这样的错误。
+
+10060—WSAETIMEDOUT
+连接超时。若发出了一个连接请求，但经过规定的时间，远程计算机仍未作出正确的响应（或根本没有任何响应），便会发生这样的错误。要想收到这样的错误，通常需要先在套接字上设置好 SO_SNDTIMEO 和 SO_RCVTIMEO 选项，然后调用 connect 及 WSAConnect 函数。要想了解在套接字上设置 SO_SNDTIMEO 和 SO_RCVTIMEO 选项的详情，可参考第9章。
+
+10061—WSAECONNREFUSED
+连接被拒。由于被目标机器拒绝，连接无法建立。这通常是由于在远程机器上，没有任何应用程序可在那个地址之上，为连接提供服务。
+
+10064—WSAEHOSTDOWN
+主机关闭。这个错误指出由于目标主机关闭，造成操作失败。然而，应用程序此时更有可能收到的是一条 WSAETIMEDOUT（连接超时）错误，因为对方关机的情况通常是在试图建立一个连接的时候发生的。 
+
+10065—WSAEHOSTUNREACH
+没有到主机的路由。应用程序试图访问一个不可抵达的主机。该错误类似于 WSAENETUNREACH。
+
+10067—WSAEPROCLIM
+进程过多。有些Winsock服务提供者对能够同时访问它们的进程数量进行了限制。
+
+10091—WSASYSNOTREADY
+网络子系统不可用。调用 WSAStartup 时，若提供者不能正常工作（由于提供服务的基层系统不可用），便会返回这种错误。
+
+10092—WSAVERNOTSUPPORED 
+Winsock.dll 版本有误。表明不支持请求的 Winsock 提供者版本。
+
+10093—WSANOTINITIALISED 
+Winsock尚未初始化。尚未成功完成对 WSAStartup 的一次调用。
+
+10101—WSAEDISCON
+正在从容关闭。这个错误是由 WSARecv 和 WSARecvFrom 返回的，指出远程主机已初始化了一次从容关闭操作。该错误是在像 ATM 这样的“面向消息”协议上发生的。
+
+10102—WSAENOMORE
+找不到更多的记录。这个错误自 WSALookupServiceNext 函数返回，指出已经没有留下更多的记录。这个错误通常可与 WSA_E_NO_MORE 互换使用。在应用程序中，应同时检查这个错误以及WSA_E_NO_MORE。
+
+10103—WSAECANCELLED
+操作被取消。这个错误指出当 WSALookupServiceNext 调用仍在处理期间，发出了对 WSALookupServiceEnd（服务中止）的一个调用。此时，WSALookupServiceNext 便会返回这个错误。这个错误代码可与 WSA_E_CANCELLED 互换使用。作为应用程序，应同时检查这个错误以及 WSA_E_CANCELLED。 
+
+10104—WSAEINVALIDPROCTABLE
+进程调用表无效。该错误通常是在进程表包含了无效条目的情况下，由一个服务提供者返回的。欲知服务提供者的详情，可参考第14章。 
+
+10105—WSAEINVALIDPROVIDER
+无效的服务提供者。这个错误同服务提供者关联在一起，在提供者不能建立正确的 Winsock 版本，从而无法正常工作的前提下产生。
+ 
+10106—WSAEPROVIDERFAILEDINIT
+提供者初始化失败。这个错误同服务提供者关联在一起，通常见于提供者不能载入需要的 DLL 时。
+
+10107—WSASYSCALLFAILURE
+系统调用失败。表明绝对不应失败的一个系统调用却令人遗憾地失败了。
+
+10108—WSASERVICE_NOT_FOUND
+找不到这样的服务。这个错误通常与注册和名字解析函数相关，在查询服务时产生（第10章对这些函数进行了详尽解释）。该错误表明，在给定的名字空间内，找不到请求的服务。
+ 
+10109—WSATYPE_NOT_FOUND
+找不到类的类型。该错误也与注册及名字解析函数关联在一起，在处理服务类（ServiceClass）时发生。若注册好一个服务的实例，它必须引用一个以前通过 WSAInstallServiceClass 安装好的服务。
+
+10110—WSA_E_NO_MORE
+找不到更多的记录。这个错误是自 WSALookupServiceNext 调用返回的，指出已经没有剩下的记录。该错误通常可与 WSAENOMORE 互换使用。作为一个应用程序，应同时检查这个错误以及 WSAENOMORE。 
+
+10111—WSA_E_CANCELLED
+操作被取消。该错误指出在对 WSALookupServiceNext 的调用尚未完成的时候，又发出了对 WSALookupServiceEnd（中止服务）的一个调用。这样，WSALookupServiceNext 就会返回该错误。这个错误代码可与 WSAECANCELLED 互换使用。作为一个应用程序，应同时检查这个错误以及WSAECANCELLED。
+
+10112—WSAEREFUSED
+查询被拒。由于被主动拒绝，所以一个数据库查询操作失败。
+
+11001—WSAHOST_NOT_FOUND
+主机没有找到。这个错误是在调用 gethostbyname 和 gethostbyaddr 时产生的，表明没有找到一个授权应答主机（Authoritative Answer Host）。 
+
+11002—WSATRY_AGAIN
+非授权主机没有找到。这个错误也是在调用 gethostbyname 和 gethostbyaddr 时产生的，表明没有找到一个非授权主机，或者遇到了服务器故障。 
+
+11003—WSANO_RECOVERY
+遇到一个不可恢复的错误。这个错误也是在调用 gethostbyname 和 gethostbyaddr 时产生的，指出遇到一个不可恢复的错误，应再次尝试操作。
+
+11004—WSANO_DATA
+没有找到请求类型的数据记录。这个错误也是在调用 gethostbyname 和 gethostbyaddr 时产生的，指出尽管提供的名字有效，但却没有找到与请求类型对应的数据记录。
+
+11005—WSA_QOS_RECEIVERS
+至少有一条预约消息抵达。这个值同 IP 服务质量（QoS）有着密切的关系，其实并不是一个真正的“错误”（QoS的详情见第12章）。它指出网络上至少有一个进程希望接收 QoS 通信。
+
+11006—WSA_QOS_SENDERS
+至少有一条路径消息抵达。这个值同 QoS 关联在一起，其实更像一种状态报告消息。它指出在网络上，至少有一个进程希望进行 QoS 数据的发送。
+
+11007—WSA_QOS_NO_SENDERS
+没有 QoS 发送者。这个值同 QoS 关联在一起，指出不再有任何进程对 QoS 数据的发送有兴趣。请参阅第12章，了解在发生这样的错误时，对所发生情况的一系列完整说明。
+
+11008—WSA_QOS_NO_RECEIVERS
+没有 QoS 接收者。这个值同 QoS 关联在一起，指出不再有任何进程对 QoS 数据的接收有兴趣。请参阅第12章，查阅对这个错误的完整说明。
+
+11009—WSA_QOS_REQUEST_CONFIRMED
+预约请求已被确认。 QoS 应用可事先发出请求，希望在批准了自己对网络带宽的预约请求后，收到通知。若发出了这样的请求，一旦批准，便会收到这样的消息。请参阅第12章，了解对此消息的详细说明。
+
+11010—WSA_QOS_ADMISSION_FAILURE
+缺乏资源致错。资源不够，以至于无法满足 QoS 带宽请求。
+
+11011—WSA_QOS_POLICY_FAILURE
+证书无效。表明发出 QoS 预约请求的时候，要么用户并不具备正确的权限，要么提供的证书无效。
+
+11012—WSA_QOS_BAD_STYLE
+未知或冲突的样式。QoS 应用程序可针对一个指定的会话，建立不同的过滤器样式。若出现这一错误，表明指定的样式类型要么未知，要么存在冲突。请参阅第 12 章，了解对过滤器样式的详细说明。
+
+11013—WSA_QOS_BAD_OBJECT
+无效的 FILTERSPEC 结构或者提供者特有对象。假如为 QoS 对象提供的 FILTERSPEC 结构无效，或者提供者特有的缓冲区无效，便会返回这样的错误，详见第12章。
+
+11014—WSA_QOS_TRAFFIC_CTRL_ERROR
+FLOWSPEC 有问题。假如通信控制组件发现指定的 FLOWSPEC 参数存在问题（作为 QoS 对象的一个成员传递），便会返回这样的错误。
+
+11015—WSA_QOS_GENERIC_ERROR
+常规 QoS 错误。这是一个比较泛泛的错误；假如其他 QoS 错误都不适合，便返回这个错误。
+
+6—WSA_INVALID_HANDLE
+指定的事件对象无效。若使用与 Win32 函数对应的 Winsock 函数，便有可能产生这样的 Win32 错误。它表明传递给 WSAWaitForMultipleEvents 的一个句柄是无效的。
+
+8—WSA_NOT_ENOUGH_MEMORY
+内存不够。这个 Win32 错误指出内存数量不足，无法完成指定的操作。 
+
+87—WSA_INVALID_PARAMETER
+一个或多个参数无效。这个 Win32 错误表明传递到函数内部的参数无效。假若事件计数参数无效，那么在执行 WSAWaitForMultipleEvents 的时候，也会发生这样的错误。
+
+258—WSA_WAIT_TIMEOUT
+操作超时。这个 Win32 错误指出重叠 I/O 操作未在规定的时间内完成。
+
+995—WSA_OPERATION_ABORTED
+重叠操作被取消。这个 Win32 错误指出由于套接字的关闭，造成一次重叠 I/O 操作的取消。除此以外，该错误也可能在执行 SIO_FLUSH 这个 I/O 控制命令时出现。
+
+
+996—WSA_IO_INCOMPLETE
+重叠 I/O 事件对象未处于传信状态。这个 Win32 错误也和重叠 I/O 操作密切相关，在调用 WSAGetOverlappedResults 函数的时候产生，指出重叠  I/O 操作尚未完成。 
+
+997—WSA_IO_PENDING
+重叠操作将在以后完成。用 Winsock 函数发出一次重叠 I/O操作时，若出现这样的 Win32 错误，便表明操作尚未完成，而且会在以后的某个时间完成。有关重叠 I/O 的深入讨论，可参阅第8章。
+
+ 
