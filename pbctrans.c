@@ -41,6 +41,7 @@ struct sockaddr_in	remote,
 					from;
  
 //BYTE ClientStatus[MAX_SOCKET_NUM] = {0};
+int DevMapping[MAX_SOCKET_NUM];
 int CheckCustTime = 30;
 unsigned int Auxiliary[] = { 0,				//Õ¾Ì¨
 							0xf0000000,		//³µÁ¾
@@ -232,7 +233,7 @@ LRESULT FAR PASCAL WndProc(HWND hMainWnd, UINT message, WPARAM wParam, LPARAM lP
 
 				case REPEAT_SEND_WAIT_PACKET://1000
 
-					MsgTestProc();//for msg test
+					//MsgTestProc();//for msg test
 
 					if(CheckCustTime <= 0)//2017,1,4
 					{
@@ -246,8 +247,8 @@ LRESULT FAR PASCAL WndProc(HWND hMainWnd, UINT message, WPARAM wParam, LPARAM lP
 							{
 								DebugWindow("A Customer Lost Connection!");
 								CloseSocketConnect(i);
-
-								//here write the msg to db
+								
+								DeviceLostProc(i);//write the msg to Alarm
 
 							}
 						}
@@ -266,10 +267,13 @@ LRESULT FAR PASCAL WndProc(HWND hMainWnd, UINT message, WPARAM wParam, LPARAM lP
 						TcpResend(i);
 					}
 
+					
+					GetNotify();//add 17,5,18
 
 					break;
 
 				case IS_SENT_CHECK://10000
+
 					break;
 
 				default:
@@ -328,6 +332,31 @@ LRESULT FAR PASCAL WndProc(HWND hMainWnd, UINT message, WPARAM wParam, LPARAM lP
 	}
 
 	return 0;
+}
+
+void DeviceLostProc(BYTE Index)
+{
+	char SlqStr[300];
+	BYTE bSucc = DB_SQL_GENERALLYERROR;
+	time_t curtime;
+	struct tm *pclock;//from the year 1900
+	char timestr[20];
+
+	
+	curtime =time(NULL);
+	pclock = localtime(&curtime);
+	memset(timestr,0,20);
+	sprintf(timestr,"%02d%02d%02d%02d%02d%02d",pclock->tm_year-100,pclock->tm_mon+1,pclock->tm_mday,pclock->tm_hour,pclock->tm_min,pclock->tm_sec);
+
+	memset(SlqStr,0,300);   //modify user status
+	sprintf(SlqStr,"insert into ptc.dbo.Alarms values(%d,%d,%d,%d,\'%s\',0)",DevMapping[Index],0,DevMapping[Index],0,timestr);
+	                                                                                                          //statux=0±íÊ¾¶Ï¿ª
+	bSucc = DoUpdate(SlqStr,30);
+	
+	DevMapping[Index] = 0;//È¥³ý Ì×½Ó×ÖºÍdevid¹ØÁª
+
+
+	return;
 }
 
 /*	 Test start  */
@@ -876,7 +905,7 @@ void AcceptConnect(WPARAM wParam, LPARAM lParam)
 	SocketData[i].Socket = TempSocket;
 	SocketData[i].PeerIPAddr = acc_sin.sin_addr.s_addr;
 	SocketData[i].LinkStatus = TRUE;
-
+	
 	return;
 }
 
@@ -1046,7 +1075,7 @@ void ReceiveData(BYTE Index)
 	BYTE i = Index;
 	int status, ReceLen;
     char MsgBuff[RECEIVE_BUFFER_LEN];
-	BYTE Msg;
+	BYTE MsgNo;
 	char *pMsgBuff,fstChar,SecChar;
 	int pos = 0,MsgLen;
 /*	
@@ -1075,7 +1104,7 @@ void ReceiveData(BYTE Index)
 		}
 	}
 
-	SendDataEx((char*)MsgBuff,(WORD)ReceLen,Index);//2017,1,3 just for debug£¿£¿£¿£¿£¿£¿
+//	SendDataEx((char*)MsgBuff,(WORD)ReceLen,Index);//2017,1,3 just for debug£¿£¿£¿£¿£¿£¿
 
 	pos = 0;
 	do 
@@ -1085,7 +1114,7 @@ void ReceiveData(BYTE Index)
 
 		pos++;
 
-	}while( (fstChar != 'B' || SecChar != 'S') && (fstChar != 'E' || SecChar != 'D') && (pos < ReceLen));//20170106
+	}while( (fstChar != 'B' || SecChar != 'S') && (fstChar != 'E' || SecChar != 'D') && (pos < ReceLen) );//20170106
 //	}while( (fstChar != 'B' || SecChar != 'S') && (fstChar != 'E' || SecChar != 'D'));
 	
 	pos--;
@@ -1094,8 +1123,8 @@ void ReceiveData(BYTE Index)
 	SecChar = toupper(*(pMsgBuff + 1));
 	if((fstChar == 'B') && (SecChar == 'S') || (fstChar == 'E') && (SecChar == 'D') )
 	{
-		Msg = (unsigned char)(*(pMsgBuff + 3));
-		MsgLen = GetMsgLen(Msg);
+		MsgNo = (unsigned char)(*(pMsgBuff + 4));
+		MsgLen = GetMsgLen(MsgNo);
 
 		SocketData[i].ReceErrorCount = 0;
 		InterpretClient((void *)pMsgBuff,MsgLen,Index);//
@@ -1206,10 +1235,31 @@ int GetMsgLen(int cmd)
 		len = sizeof(BusLine);
 		break;
 	default:
+		len = 0;
 		break;
 	}
 
 	return len;
+}
+void MapDeviceSock(BYTE index,int DeviceId)
+{
+	if((index < MAX_SOCKET_NUM) && (DevMapping[index] != DeviceId))
+		DevMapping[index] = DeviceId;
+
+		return;
+}
+
+unsigned char GetSockfromDeviceId(int DeviceId)
+{
+	int i;
+	 
+	for(i = 1;i < MAX_SOCKET_NUM; i++)
+	{
+		if((DevMapping[i] == DeviceId))//ÕÒµ½
+			return i;
+	}
+
+	return 0;
 }
 
 int InterpretClient(void * pMsgBuf,int HeadandMsgLen,BYTE Index)//HeadandMsgLenÖ»°üÀ¨Í·ºÍÏûÏ¢Ìå£¬²»°üÀ¨Ð£ÑéºÍ
@@ -1220,7 +1270,7 @@ int InterpretClient(void * pMsgBuf,int HeadandMsgLen,BYTE Index)//HeadandMsgLenÖ
 
 	memset((void *)RecieveBuf,0x00,MAX_MSG_LEN);
 	memcpy((void *)RecieveBuf,(void *)pMsgBuf,HeadandMsgLen);
-	cmdNo = *(RecieveBuf + 3);
+	cmdNo = *(RecieveBuf + 4);
 
 	switch(cmdNo)
 	{
@@ -1239,6 +1289,7 @@ int InterpretClient(void * pMsgBuf,int HeadandMsgLen,BYTE Index)//HeadandMsgLenÖ
 			msg.CustType = inmsg->CustType;
 			msg.EquipID = inmsg->EquipID;
 			
+			MapDeviceSock(Index,inmsg->EquipID);//add 17,5,19°ÑÌ×½Ó×ÖºÍÉè±¸ºÅ¹ØÁª
 
 			bSucc = SendDataEx((char*)(&msg),(WORD)GetMsgLen(CM_TEST),Index);//for clients checking link status
 		}
@@ -1718,6 +1769,7 @@ BYTE GetBusLineStations(BusLine *msg,BusLineReq *inmsg)
 	if(BindColNumber != 1)
 		return GetSQLError(hstmt);
     
+	memset(sqlResult,0,MAX_COL_LEN * sizeof(char));
 	retcode = SQLBindCol(hstmt,(UWORD)1, SQL_C_CHAR, sqlResult, sizeof(sqlResult), &cbt);
 	if(RETCODE_IS_FAILURE(retcode))
 		return GetSQLError(hstmt);
@@ -1772,7 +1824,8 @@ BYTE GetBusLineName(BusLine *msg,BusLineReq *inmsg)
 	BindColNumber = dbSQLExecDirect(hstmt,SlqStr);
 	if(BindColNumber == -1 || BindColNumber != 1)
 		return GetSQLError(hstmt);
-    
+
+    memset(sqlResult,0,MAX_COL_LEN * sizeof(char));//17,05,24
 	retcode = SQLBindCol(hstmt,(UWORD)1, SQL_C_CHAR, sqlResult, sizeof(sqlResult), &cbt);
 	if(RETCODE_IS_FAILURE(retcode))
 		return GetSQLError(hstmt);
@@ -1826,6 +1879,8 @@ BYTE LogoutProc(Logout *pMsg)
 	if(BindColNumber == -1 || BindColNumber != 1)
 		return GetSQLError(hstmt);
     
+	
+	memset(sqlResult,0,MAX_COL_LEN * sizeof(char));//17,05,24
 	retcode = SQLBindCol(hstmt,(UWORD)1, SQL_C_CHAR, sqlResult, sizeof(sqlResult), &cbt);
 	if(RETCODE_IS_FAILURE(retcode))
 		return GetSQLError(hstmt);
@@ -1882,6 +1937,7 @@ BYTE LogonProc(Logon *pMsg)
 	if(BindColNumber == -1 || BindColNumber != 1)
 		return GetSQLError(hstmt);
     
+	memset(sqlResult,0,MAX_COL_LEN * sizeof(char));//17,05,24
 	retcode = SQLBindCol(hstmt,(UWORD)1, SQL_C_CHAR, sqlResult, sizeof(sqlResult), &cbt);
 	if(RETCODE_IS_FAILURE(retcode))
 		return GetSQLError(hstmt);
@@ -2002,6 +2058,7 @@ BYTE GetBusInfo(BusInit *msg,BusInitReq *inmsg)
 	if(BindColNumber == -1 || BindColNumber != 5)
 		return GetSQLError(hstmt);
     
+	memset(sqlResult,0,5 * MAX_COL_LEN * sizeof(char));//17,05,24
 	for(i=0; i<BindColNumber; i++)
 	{
 		retcode = SQLBindCol(hstmt,(UWORD)(i+1), SQL_C_CHAR, sqlResult[i], sizeof(sqlResult[i]), &cbt[i]);
@@ -2092,6 +2149,7 @@ BYTE GetStationBusLines(StationInit *msg,StationInitReq *inmsg)
 	if(BindColNumber != 1)
 		return GetSQLError(hstmt);
     
+	memset(sqlResult,0,MAX_COL_LEN * sizeof(char));//17,05,24
 	retcode = SQLBindCol(hstmt,(UWORD)1, SQL_C_CHAR, sqlResult, sizeof(sqlResult), &cbt);
 	if(RETCODE_IS_FAILURE(retcode))
 		return GetSQLError(hstmt);
@@ -2147,6 +2205,7 @@ BYTE GetStationBaseInfo(StationInit *msg,StationInitReq *inmsg)
 	if(BindColNumber == -1 || BindColNumber != 4)
 		return GetSQLError(hstmt);
     
+	memset(sqlResult,0,4 * MAX_COL_LEN * sizeof(char));//17,05,24
 	for(i=0; i<BindColNumber; i++)
 	{
 		retcode = SQLBindCol(hstmt,(UWORD)(i+1), SQL_C_CHAR, sqlResult[i], sizeof(sqlResult[i]), &cbt[i]);
@@ -2603,6 +2662,8 @@ void InitApp(void)
     gHDC = GetDC(hMainWnd);
     gY=0;
 
+	memset(DevMapping,0,MAX_SOCKET_NUM * sizeof(DevMap));//add 17,05,19
+
 	return;
 }
 
@@ -2868,6 +2929,7 @@ BOOL DoConnect(char *szServer)
 	}
 
 	sprintf(sServer,szServer);
+	sprintf(sServer,"WIN-JC8GFSMTV3H\\SQLEXPRESS");
 
 	retcode = SQLAllocEnv(&henv);
 	if(retcode == SQL_ERROR) 
@@ -3110,11 +3172,9 @@ BYTE GetNotify(void)
 	HSTMT   hstmt;
     RETCODE retcode;
 	INT32   BindColNumber;
-	char QRContent[MAX_QRSTR_LEN],Time[50];
-	int Id,type;
-	char fput[255];
-//	time_t t;
-//	char filename[100];
+	char params[MAX_QRSTR_LEN];
+	int DevId,cmdno,type;
+	BYTE index;
 
    	if(hdbc == NULL)
 		return DB_SQL_GENERALLYERROR;
@@ -3124,11 +3184,12 @@ BYTE GetNotify(void)
 		return DB_SQL_GENERALLYERROR;
 
 	memset(SlqStr,0,300);
-	sprintf(SlqStr,"select id,QRContent,type,Time from aspdb.dbo.Í¨Öª±í where Status = 1");
+	sprintf(SlqStr,"select DevId,Cmdno,Params,Type from ptc.dbo.Notification where Status = 1");
 	BindColNumber = dbSQLExecDirect(hstmt,SlqStr);
 	if(BindColNumber == -1 || BindColNumber != 4)
 		return GetSQLError(hstmt);
     
+	memset(sqlResult,0,4 * MAX_COL_LEN * sizeof(char));//modify 17,05,24
 	for(i=0; i<BindColNumber; i++)
 	{
 		retcode = SQLBindCol(hstmt,(UWORD)(i+1), SQL_C_CHAR, sqlResult[i], sizeof(sqlResult[i]), &cbt[i]);
@@ -3150,48 +3211,137 @@ BYTE GetNotify(void)
 		rtrim(sqlResult[2]);
 		rtrim(sqlResult[3]);
 	
-		if(strlen(sqlResult[1]) == 0 || strlen(sqlResult[1]) > 255)
+		if(strlen(sqlResult[0]) == 0 || strlen(sqlResult[0]) > 5)
 		{
-			DebugWindow("GetNotify(),QRContent too large in db!");
+			DebugWindow("GetNotify(),DevId length out of range in db!");
 			continue;
 		}
-		if(strlen(sqlResult[2]) == 0 || strlen(sqlResult[2]) >1)
+		if(strlen(sqlResult[1]) == 0 || strlen(sqlResult[1]) > 2)
 		{
-			DebugWindow("GetNotify(),type length out of range in db!");
+			DebugWindow("GetNotify(),Cmdno too large in db!");
 			continue;
 		}
-		if(strlen(sqlResult[3]) == 0 || strlen(sqlResult[3]) > 50)
+		if(/*strlen(sqlResult[2]) == 0 || */strlen(sqlResult[2]) > 120)//²ÎÊý¿ÉÒÔÎª¿Õ
 		{
-			DebugWindow("GetNotify(),Time too large in db!");
+			DebugWindow("GetNotify(),Params length out of range in db!");
 			continue;
 		}
-		memset(QRContent,0,MAX_QRSTR_LEN);
-		memset(Time,0,50);
-		memset(fput,0,255*sizeof(char));
+		if(strlen(sqlResult[3]) == 0 || strlen(sqlResult[3]) > 2)
+		{
+			DebugWindow("GetNotify(),Type too large in db!");
+			continue;
+		}
+		memset(params,0,MAX_QRSTR_LEN * sizeof(char));
 
-		Id = atoi(sqlResult[0]);
-		type = (UINT8)atoi(sqlResult[2]);
-		strcpy(fput,sqlResult[1]);
-//		strcpy(QRContent,sqlResult[1]);
-		strcpy(Time,sqlResult[3]);
+		DevId = atoi(sqlResult[0]);
+		cmdno = (UINT8)atoi(sqlResult[1]);
+		memcpy(params,sqlResult[2],strlen(sqlResult[2]));
+		type =  atoi(sqlResult[3]);
 
-/*		time(&t); 
-		memset(filename,0,100);
-		sprintf(filename,"%ld.jpg",t);//ÎÄ¼þÃû
-		Str2QRPic(pQrFunc->QRString,filename);//µ÷ÓÃ¶þÎ¬ÂëÉú³É³ÌÐò
-*/
-		Gb2312Utf(fput, strlen(fput), QRContent, MAX_QRSTR_LEN);
-//		SendQRStr2GPRS(QRContent,strlen(QRContent)-1);//·¢¸øgprs
+		index = GetSockfromDeviceId(DevId);
+		if(index == 0)
+		{
+			DebugWindow("GetNotify(),Device not connected!");
+			break;
+		}
+
+		PackNotifyMsg(DevId,(BYTE)cmdno,params,index);//send request to device
 	}
 
 	SQLFreeStmt(hstmt, SQL_DROP);
 
 	memset(SlqStr,0,300);
-	sprintf(SlqStr,"update aspdb.dbo.Í¨Öª±í set Status=0 where status=1");
+	sprintf(SlqStr,"update ptc.dbo.Notification set Status=0 where status=1");
 	DoUpdate(SlqStr,30);
 
-
 	return DB_SQL_SUCCESS;
+}
+
+void PackNotifyMsg(int DevId,unsigned char CmdNo,char *params,unsigned char Index)
+{
+	switch(CmdNo)
+	{
+		break;
+	case CM_STATIONSTATUSREQ:
+		{
+			StationStatusReq msg;
+			unsigned char bSucc;
+#ifdef TEST
+			DebugWindow("--Found Command CM_STATIONSTATUSREQ--");
+#endif
+			memset((void *)&msg,0,sizeof(msg));
+			msg.h1 = 'B';
+			msg.h2 = 'S';
+			msg.MsgLen = GetMsgLen(CmdNo);
+			msg.cmdNo = CmdNo;
+			msg.StationNo = DevId;
+			
+			bSucc = SendDataEx((char*)(&msg),(WORD)GetMsgLen(CmdNo),Index);
+		}
+		break;
+
+	case CM_STATIONSTATUS:
+		break;
+
+	case CM_BUSSTATUSREQ:
+		{
+			BusStatusReq msg;
+			unsigned char bSucc;
+#ifdef TEST
+			DebugWindow("--Found Command CM_BUSSTATUSREQ--");
+#endif
+
+			memset((void *)&msg,0,sizeof(msg));
+			msg.h1 = 'E';
+			msg.h2 = 'D';
+			msg.MsgLen = GetMsgLen(CmdNo);
+			msg.cmdNo = CmdNo;
+			msg.Aux = 0;//ÔÝÎÞÒâÒå
+			msg.BusNo = DevId;
+			
+			bSucc = SendDataEx((char*)(&msg),(WORD)GetMsgLen(CmdNo),Index);
+		}
+		break;
+
+	case CM_BUSSTATUS:
+		break;
+
+	case CM_STATIONINITREQ:
+		break;
+	case CM_STATIONINIT:
+		break;
+	case CM_BUSINITREQ:
+		break;
+	case CM_BUSINIT:
+		break;
+	case CM_BUSCOMING:
+		break;
+	case CM_BUSSTOPPING:
+		break;
+	case CM_BUSLEAVING:
+		break;
+	case CM_BUSRUNNING:
+		break;
+	case CM_LOGON:
+		break;
+	case CM_LOGOUT:
+		break;
+	case CM_CHANGEPASSWORD:
+		break;
+	
+	case CM_ALARMMSG:
+		break;
+	case CM_SYSTIMEREQ:
+		break;
+	case CM_SYSTIME:
+		break;
+	case CM_BUSLINEREQ:
+		break;
+	case CM_BUSLINE:
+		break;
+	default:
+		break;
+	}
 }
 
 void GetAppConfig(void)

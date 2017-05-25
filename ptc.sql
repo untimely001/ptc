@@ -195,6 +195,21 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+CREATE TABLE [dbo].[Notification](
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[DevId] [int] NULL,
+	[Cmdno] [int] NULL,
+	[Params] [nchar](120) COLLATE Chinese_PRC_CI_AS NULL,
+	[Type] [int] NULL,
+	[Status] [int] NULL,
+	[Time] [nchar](12) COLLATE Chinese_PRC_CI_AS NULL
+) ON [PRIMARY]
+GO
+
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[UspOutputData]') AND type in (N'P', N'PC'))
 BEGIN
 EXEC dbo.sp_executesql @statement = N'CREATE PROCEDURE [dbo].[UspOutputData]

@@ -233,6 +233,12 @@ typedef struct tag_MsgHead
 //	BYTE ErrCode;//0=success,other=errorcode
 //	BYTE TurnOver;
 }MsgHead;
+
+typedef struct tag_DevMap
+{
+	unsigned char SockIndex;//套接字存储的位置
+	int           DevId;
+}DevMap;
 typedef struct tag_Test
 {
 	BYTE h1;	
@@ -271,6 +277,7 @@ typedef struct tag_BusStatusReq
 	BYTE h2;
 	UINT16 MsgLen;
 	BYTE cmdNo;				//CM_BUSSTATUSREQ,			//请求公交车状态信息
+	BYTE Aux;
 	UINT16 BusNo;
 }BusStatusReq;
 typedef struct tag_BusStatus
@@ -631,6 +638,11 @@ void ConnectPeer(WPARAM wParam, LPARAM lParam);
 BYTE DoUpdate(char *SQLString,UINT16 WaitTime);
 void rtrim(char *Instr);
 INT32  dbSQLExecDirect(HSTMT hstmt, char *SQLString);
+void MapDeviceSock(BYTE index,int DeviceId);
+BYTE GetSockfromDeviceId(int DeviceId);
+int GetDevIdfromIndex(BYTE Index);
+void DeviceLostProc(BYTE Index);
+void PackNotifyMsg(int DevId,UINT8 CmdNo,char *params,BYTE Index);
 
 // function prototypes (public)
 BOOL SendData(char * pBuff,WORD MsgLen,SOCKET s);//socket
