@@ -233,7 +233,7 @@ LRESULT FAR PASCAL WndProc(HWND hMainWnd, UINT message, WPARAM wParam, LPARAM lP
 
 				case REPEAT_SEND_WAIT_PACKET://1000
 
-					//MsgTestProc();//for msg test
+//					MsgTestProc();//for msg test
 
 					if(CheckCustTime <= 0)//2017,1,4
 					{
@@ -363,12 +363,18 @@ void DeviceLostProc(BYTE Index)
 void MsgTestProc(void)
 {
 #ifdef TEST
-/*	BusLineReq event;
+	BusStatus event,*p;
+	char data[100]={0x45,0x44,0x24,0x00,0x05,/*0xfc,*/0x65,0x00,0xc6,0xa7,0x00,0x18,0xcf,0xac,0x5d,0x40,0x6e,0x6e                         \
+		            ,0x4c,0x4f,0x58,0x1a,0x40,0x40,0x01,/*0x0b,0x00,0x08,*/0x85,0xeb,0x20,0x42,0x11,0x06,0x04,0x14,0x1a};
+
 	
-	memset((void *)&event,0,sizeof(event));
+   p = (BusStatus *)data;
+
+	
+/*	memset((void *)&event,0xcc,sizeof(event));
 	event.h1 = 'B';
 	event.h2 = 'S';
-	event.cmdNo = CM_BUSLINEREQ;
+	event.cmdNo = CM_BUSSTATUS;
 
 	event.CustType = 1;
 	event.EquipID = 4;
@@ -382,9 +388,9 @@ void MsgTestProc(void)
 	event.Hour=11;
 	event.Minute = 57;
 	event.Second = 43;
-
+*/
 	InterpretClient((void *)&event,sizeof(event),0);
-*/	
+	
 #endif
 }
 
@@ -1291,7 +1297,7 @@ int InterpretClient(void * pMsgBuf,int HeadandMsgLen,BYTE Index)//HeadandMsgLenÖ
 			
 			MapDeviceSock(Index,inmsg->EquipID);//add 17,5,19°ÑÌ×½Ó×ÖºÍÉè±¸ºÅ¹ØÁª
 
-			bSucc = SendDataEx((char*)(&msg),(WORD)GetMsgLen(CM_TEST),Index);//for clients checking link status
+//			bSucc = SendDataEx((char*)(&msg),(WORD)GetMsgLen(CM_TEST),Index);//for clients checking link status
 		}
 		break;
 
@@ -1323,7 +1329,7 @@ int InterpretClient(void * pMsgBuf,int HeadandMsgLen,BYTE Index)//HeadandMsgLenÖ
 			msg.BusId3 = inmsg->BusId3;
 			msg.BusId4 = inmsg->BusId4;
 			msg.BusId5 = inmsg->BusId5;
-			bSucc = SendDataEx((char*)(&msg),(WORD)GetMsgLen(cmdNo),Index);//for debug
+//			bSucc = SendDataEx((char*)(&msg),(WORD)GetMsgLen(cmdNo),Index);//for debug
 			
 			//write to db
 			StationStatusProc(inmsg);
@@ -1363,7 +1369,7 @@ int InterpretClient(void * pMsgBuf,int HeadandMsgLen,BYTE Index)//HeadandMsgLenÖ
 			msg.Velocity = inmsg->Velocity;
 			msg.Passengers = inmsg->Passengers;
 
-			bSucc = SendDataEx((char*)(&msg),(WORD)GetMsgLen(cmdNo),Index);//for debug
+//			bSucc = SendDataEx((char*)(&msg),(WORD)GetMsgLen(cmdNo),Index);//for debug
 
 			//write to db
 			BusStatusProc(inmsg);
@@ -1449,7 +1455,7 @@ int InterpretClient(void * pMsgBuf,int HeadandMsgLen,BYTE Index)//HeadandMsgLenÖ
 			//write to db
 			BusComingProc(inmsg);
 
-			bSucc = SendDataEx((char*)&msg,(WORD)GetMsgLen(CM_BUSCOMINGACK),Index);//Ack
+//			bSucc = SendDataEx((char*)&msg,(WORD)GetMsgLen(CM_BUSCOMINGACK),Index);//Ack
 		}
 		break;
 
@@ -1495,7 +1501,7 @@ int InterpretClient(void * pMsgBuf,int HeadandMsgLen,BYTE Index)//HeadandMsgLenÖ
 			//write to db
 			BusLeavingProc(inmsg);
 
-			bSucc = SendDataEx((char*)&msg,(WORD)GetMsgLen(CM_BUSLEAVINGACK),Index);//for debug
+//			bSucc = SendDataEx((char*)&msg,(WORD)GetMsgLen(CM_BUSLEAVINGACK),Index);//for debug
 		}
 		break;
 
@@ -1659,7 +1665,7 @@ int InterpretClient(void * pMsgBuf,int HeadandMsgLen,BYTE Index)//HeadandMsgLenÖ
 				                                    inmsg->EquipID,inmsg->Status,timestr);
 			bSucc = DoUpdate(SlqStr,30);
 			
-			SendDataEx((char*)(&msg),(WORD)GetMsgLen(cmdNo),Index);//send back just for debugging
+//			SendDataEx((char*)(&msg),(WORD)GetMsgLen(cmdNo),Index);//send back just for debugging
 		}
 		break;
 
