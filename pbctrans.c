@@ -16,6 +16,7 @@
 #pragma comment(lib,"ws2_32.lib")
 
 #define TEST
+#define BD_SQLITE
 
 static HDC gHDC;
 static int gY;
@@ -43,10 +44,6 @@ struct sockaddr_in	remote,
 //BYTE ClientStatus[MAX_SOCKET_NUM] = {0};
 int DevMapping[MAX_SOCKET_NUM];
 int CheckCustTime = 30;
-unsigned int Auxiliary[] = { 0,				//Õ¾Ì¨
-							0xf0000000,		//³µÁ¾
-							0x80000000,		//ÐÐÈË
-							0x40000000 };	//²Ù×÷Ô±
 							
 #define __DEBUG_FILE__     ".\\gdebug.inf"
 
@@ -349,12 +346,15 @@ void DeviceLostProc(BYTE Index)
 	sprintf(timestr,"%02d%02d%02d%02d%02d%02d",pclock->tm_year-100,pclock->tm_mon+1,pclock->tm_mday,pclock->tm_hour,pclock->tm_min,pclock->tm_sec);
 
 	memset(SlqStr,0,300);   //modify user status
+#ifdef BD_SQLITE
+	sprintf(SlqStr,"insert into Alarms values(%d,%d,%d,%d,\'%s\',0)",DevMapping[Index],0,DevMapping[Index],0,timestr);//statux=0±íÊ¾¶Ï¿ª		
+#else
 	sprintf(SlqStr,"insert into ptc.dbo.Alarms values(%d,%d,%d,%d,\'%s\',0)",DevMapping[Index],0,DevMapping[Index],0,timestr);
-	                                                                                                          //statux=0±íÊ¾¶Ï¿ª
+	                                                                                                          //statux=0±íÊ¾¶Ï¿ª		
+#endif
 	bSucc = DoUpdate(SlqStr,30);
 	
 	DevMapping[Index] = 0;//È¥³ý Ì×½Ó×ÖºÍdevid¹ØÁª
-
 
 	return;
 }
@@ -363,12 +363,12 @@ void DeviceLostProc(BYTE Index)
 void MsgTestProc(void)
 {
 #ifdef TEST
-	BusStatus event,*p;
-	char data[100]={0x45,0x44,0x24,0x00,0x05,/*0xfc,*/0x65,0x00,0xc6,0xa7,0x00,0x18,0xcf,0xac,0x5d,0x40,0x6e,0x6e                         \
-		            ,0x4c,0x4f,0x58,0x1a,0x40,0x40,0x01,/*0x0b,0x00,0x08,*/0x85,0xeb,0x20,0x42,0x11,0x06,0x04,0x14,0x1a};
+//	BusStatus event,*p;
+//	char data[100]={0x45,0x44,0x24,0x00,0x05,/*0xfc,*/0x65,0x00,0xc6,0xa7,0x00,0x18,0xcf,0xac,0x5d,0x40,0x6e,0x6e                         \
+//		            ,0x4c,0x4f,0x58,0x1a,0x40,0x40,0x01,/*0x0b,0x00,0x08,*/0x85,0xeb,0x20,0x42,0x11,0x06,0x04,0x14,0x1a};
 
 	
-   p = (BusStatus *)data;
+//   p = (BusStatus *)data;
 
 	
 /*	memset((void *)&event,0xcc,sizeof(event));
@@ -389,7 +389,7 @@ void MsgTestProc(void)
 	event.Minute = 57;
 	event.Second = 43;
 */
-	InterpretClient((void *)&event,sizeof(event),0);
+//	InterpretClient((void *)&event,sizeof(event),0);
 	
 #endif
 }
@@ -1551,7 +1551,12 @@ int InterpretClient(void * pMsgBuf,int HeadandMsgLen,BYTE Index)//HeadandMsgLenÖ
 				memcpy(msg.Password,inmsg->Password,20 * sizeof(char));//now success
 
 				memset(SlqStr,0,300);   //modify user status
+#ifdef BD_SQLITE
+				sprintf(SlqStr,"update Users set Status = 1 where UserName = \'%s\'",inmsg->UserID);
+#else
 				sprintf(SlqStr,"update ptc.dbo.Users set Status = 1 where UserName = \'%s\'",inmsg->UserID);
+#endif
+
 				DoUpdate(SlqStr,30);
 			}
 			else
@@ -1587,7 +1592,12 @@ int InterpretClient(void * pMsgBuf,int HeadandMsgLen,BYTE Index)//HeadandMsgLenÖ
 				memcpy(msg.UserID,inmsg->UserID,20 * sizeof(char));
 				
 				memset(SlqStr,0,300);   //modify user status
+#ifdef BD_SQLITE
+				sprintf(SlqStr,"update Users set Status = 0 where UserName = \'%s\'",inmsg->UserID);
+#else
 				sprintf(SlqStr,"update ptc.dbo.Users set Status = 0 where UserName = \'%s\'",inmsg->UserID);
+#endif
+
 				DoUpdate(SlqStr,30);
 			}
 			else
@@ -1615,7 +1625,12 @@ int InterpretClient(void * pMsgBuf,int HeadandMsgLen,BYTE Index)//HeadandMsgLenÖ
 			msg.EquipID = inmsg->EquipID;
 			
 			memset(SlqStr,0,300);   //modify user status
+#ifdef BD_SQLITE
+			sprintf(SlqStr,"update Users set Password = \'%s\' where UserName = \'%s\'",inmsg->NewPassword,inmsg->UserID);
+#else
 			sprintf(SlqStr,"update ptc.dbo.Users set Password = \'%s\' where UserName = \'%s\'",inmsg->NewPassword,inmsg->UserID);
+#endif
+
 			bSucc = DoUpdate(SlqStr,30);
 
 			if(bSucc == DB_SQL_SUCCESS)
@@ -1661,8 +1676,13 @@ int InterpretClient(void * pMsgBuf,int HeadandMsgLen,BYTE Index)//HeadandMsgLenÖ
 			sprintf(timestr,"%02d%02d%02d%02d%02d%02d",pclock->tm_year-100,pclock->tm_mon+1,pclock->tm_mday,pclock->tm_hour,pclock->tm_min,pclock->tm_sec);
 
 			memset(SlqStr,0,300);   //modify user status
+#ifdef BD_SQLITE
+			sprintf(SlqStr,"insert into Alarms values(%d,%d,%d,%d,\'%s\',0)",inmsg->EquipID,inmsg->CustType,                           \
+				                                    inmsg->EquipID,inmsg->Status,timestr);
+#else
 			sprintf(SlqStr,"insert into ptc.dbo.Alarms values(%d,%d,%d,%d,\'%s\',0)",inmsg->EquipID,inmsg->CustType,                   \
 				                                    inmsg->EquipID,inmsg->Status,timestr);
+#endif
 			bSucc = DoUpdate(SlqStr,30);
 			
 //			SendDataEx((char*)(&msg),(WORD)GetMsgLen(cmdNo),Index);//send back just for debugging
@@ -1769,7 +1789,11 @@ BYTE GetBusLineStations(BusLine *msg,BusLineReq *inmsg)
 		return DB_SQL_GENERALLYERROR;
 	
 	memset(SlqStr,0,300);
+#ifdef BD_SQLITE
+	sprintf(SlqStr,"select StationID from BusLineStations where BusLineID = %d",inmsg->BusLineID);
+#else
 	sprintf(SlqStr,"select StationID from ptc.dbo.BusLineStations where BusLineID = %d",inmsg->BusLineID);
+#endif
 	
 	BindColNumber = dbSQLExecDirect(hstmt,SlqStr);
 	if(BindColNumber != 1)
@@ -1826,7 +1850,11 @@ BYTE GetBusLineName(BusLine *msg,BusLineReq *inmsg)
 		return DB_SQL_GENERALLYERROR;
 	
 	memset(SlqStr,0,300);
+#ifdef BD_SQLITE
+	sprintf(SlqStr,"select BusLineName from BusLines where BusLineID = %d",inmsg->BusLineID);		
+#else
 	sprintf(SlqStr,"select BusLineName from ptc.dbo.BusLines where BusLineID = %d",inmsg->BusLineID);
+#endif
 	BindColNumber = dbSQLExecDirect(hstmt,SlqStr);
 	if(BindColNumber == -1 || BindColNumber != 1)
 		return GetSQLError(hstmt);
@@ -1880,11 +1908,14 @@ BYTE LogoutProc(Logout *pMsg)
 		return DB_SQL_GENERALLYERROR;
 	
 	memset(SlqStr,0,300);
-	sprintf(SlqStr,"select count(*) from ptc.dbo.Users where UserName = \'%s\'",pMsg->UserID);
+#ifdef BD_SQLITE
+	sprintf(SlqStr,"select count(*) from Users where UserName = \'%s\'",pMsg->UserID);		
+#else
+	sprintf(SlqStr,"select count(*) from ptc.dbo.Users where UserName = \'%s\'",pMsg->UserID);		
+#endif
 	BindColNumber = dbSQLExecDirect(hstmt,SlqStr);
 	if(BindColNumber == -1 || BindColNumber != 1)
 		return GetSQLError(hstmt);
-    
 	
 	memset(sqlResult,0,MAX_COL_LEN * sizeof(char));//17,05,24
 	retcode = SQLBindCol(hstmt,(UWORD)1, SQL_C_CHAR, sqlResult, sizeof(sqlResult), &cbt);
@@ -1938,7 +1969,11 @@ BYTE LogonProc(Logon *pMsg)
 		return DB_SQL_GENERALLYERROR;
 	
 	memset(SlqStr,0,300);
-	sprintf(SlqStr,"select count(*) from ptc.dbo.Users where UserName = \'%s\' and Password = \'%s\'",pMsg->UserID,pMsg->Password);
+#ifdef BD_SQLITE
+	sprintf(SlqStr,"select count(*) from Users where UserName = \'%s\' and Password = \'%s\'",pMsg->UserID,pMsg->Password);		
+#else
+	sprintf(SlqStr,"select count(*) from ptc.dbo.Users where UserName = \'%s\' and Password = \'%s\'",pMsg->UserID,pMsg->Password);		
+#endif
 	BindColNumber = dbSQLExecDirect(hstmt,SlqStr);
 	if(BindColNumber == -1 || BindColNumber != 1)
 		return GetSQLError(hstmt);
@@ -1986,9 +2021,13 @@ void BusRunningProc(BusRunning *pMsg)
 	memset(SqlString,0,1024);
 	memset(timestr,0,20);
 	sprintf(timestr,"%02d%02d%02d%02d%02d%02d",pMsg->Year,pMsg->Month,pMsg->Day,pMsg->Hour,pMsg->Minute,pMsg->Second);
-	
+#ifdef BD_SQLITE
+	sprintf(SqlString,"insert into BusInservices values(%d,%lf,%lf,%d,%f,%d,\'%s\',4)",pMsg->BusID,pMsg->Longitude,                  \
+		                                       pMsg->Latitude,pMsg->Direction,pMsg->Velocity,pMsg->Passengers,timestr);
+#else
 	sprintf(SqlString,"insert into ptc.dbo.BusInservices values(%d,%lf,%lf,%d,%f,%d,\'%s\',4)",pMsg->BusID,pMsg->Longitude,          \
 		                                       pMsg->Latitude,pMsg->Direction,pMsg->Velocity,pMsg->Passengers,timestr);
+#endif
 	
 	DoUpdate(SqlString,30);
 	
@@ -2003,7 +2042,11 @@ void BusLeavingProc(BusLeaving *pMsg)
 	memset(SqlString,0,1024);
 	memset(timestr,0,20);
 	sprintf(timestr,"%02d%02d%02d%02d%02d%02d",pMsg->Year,pMsg->Month,pMsg->Day,pMsg->Hour,pMsg->Minute,pMsg->Second);
-	sprintf(SqlString,"insert into ptc.dbo.BusInservices values(%d,0,0,%d,0,%d,\'%s\',3)",pMsg->BusID,pMsg->Direction,pMsg->Passengers,timestr);
+#ifdef BD_SQLITE
+	sprintf(SqlString,"insert into BusInservices values(%d,0,0,%d,0,%d,\'%s\',3)",pMsg->BusID,pMsg->Direction,pMsg->Passengers,timestr);		
+#else
+	sprintf(SqlString,"insert into ptc.dbo.BusInservices values(%d,0,0,%d,0,%d,\'%s\',3)",pMsg->BusID,pMsg->Direction,pMsg->Passengers,timestr);		
+#endif	
 	
 	DoUpdate(SqlString,30);
 	
@@ -2018,7 +2061,11 @@ void BusStoppingProc(BusStopping *pMsg)
 	memset(SqlString,0,1024);
 	memset(timestr,0,20);
 	sprintf(timestr,"%02d%02d%02d%02d%02d%02d",pMsg->Year,pMsg->Month,pMsg->Day,pMsg->Hour,pMsg->Minute,pMsg->Second);
-	sprintf(SqlString,"insert into ptc.dbo.BusInservices values(%d,0,0,%d,0,%d,\'%s\',2)",pMsg->BusID,pMsg->Direction,pMsg->Passengers,timestr);
+#ifdef BD_SQLITE
+	sprintf(SqlString,"insert into BusInservices values(%d,0,0,%d,0,%d,\'%s\',2)",pMsg->BusID,pMsg->Direction,pMsg->Passengers,timestr);		
+#else
+	sprintf(SqlString,"insert into ptc.dbo.BusInservices values(%d,0,0,%d,0,%d,\'%s\',2)",pMsg->BusID,pMsg->Direction,pMsg->Passengers,timestr);		
+#endif	
 
 	DoUpdate(SqlString,30);
 	
@@ -2033,8 +2080,11 @@ void BusComingProc(BusComing *pMsg)
 	memset(SqlString,0,1024);
 	memset(timestr,0,20);
 	sprintf(timestr,"%02d%02d%02d%02d%02d%02d",pMsg->Year,pMsg->Month,pMsg->Day,pMsg->Hour,pMsg->Minute,pMsg->Second);
-	
+#ifdef BD_SQLITE
+	sprintf(SqlString,"insert into BusInservices values(%d,0,0,%d,0,%d,\'%s\',1)",pMsg->BusID,pMsg->Direction,pMsg->Passengers,timestr);
+#else
 	sprintf(SqlString,"insert into ptc.dbo.BusInservices values(%d,0,0,%d,0,%d,\'%s\',1)",pMsg->BusID,pMsg->Direction,pMsg->Passengers,timestr);
+#endif	
 	
 	DoUpdate(SqlString,30);
 	
@@ -2059,7 +2109,11 @@ BYTE GetBusInfo(BusInit *msg,BusInitReq *inmsg)
 		return DB_SQL_GENERALLYERROR;
 	
 	memset(SlqStr,0,300);
-	sprintf(SlqStr,"select NumberPlate,BusLineID,BusType,DepRate,Price from ptc.dbo.Buses where BusID = %d",inmsg->BusNo);
+#ifdef BD_SQLITE
+	sprintf(SlqStr,"select NumberPlate,BusLineID,BusType,DepRate,Price from Buses where BusID = %d",inmsg->BusNo);		
+#else
+	sprintf(SlqStr,"select NumberPlate,BusLineID,BusType,DepRate,Price from ptc.dbo.Buses where BusID = %d",inmsg->BusNo);		
+#endif
 	BindColNumber = dbSQLExecDirect(hstmt,SlqStr);
 	if(BindColNumber == -1 || BindColNumber != 5)
 		return GetSQLError(hstmt);
@@ -2149,8 +2203,11 @@ BYTE GetStationBusLines(StationInit *msg,StationInitReq *inmsg)
 		return DB_SQL_GENERALLYERROR;
 	
 	memset(SlqStr,0,300);
-	sprintf(SlqStr,"select BusLineID from ptc.dbo.BusLineStations where StationID = %d",inmsg->StationNo);
-
+#ifdef BD_SQLITE
+	sprintf(SlqStr,"select BusLineID from BusLineStations where StationID = %d",inmsg->StationNo);		
+#else
+	sprintf(SlqStr,"select BusLineID from ptc.dbo.BusLineStations where StationID = %d",inmsg->StationNo);		
+#endif
 	BindColNumber = dbSQLExecDirect(hstmt,SlqStr);
 	if(BindColNumber != 1)
 		return GetSQLError(hstmt);
@@ -2206,7 +2263,11 @@ BYTE GetStationBaseInfo(StationInit *msg,StationInitReq *inmsg)
 		return DB_SQL_GENERALLYERROR;
 
 	memset(SlqStr,0,300);
-	sprintf(SlqStr,"select StationName,Longitude,Latitude,BusPits from ptc.dbo.Stations where StationID = %d",inmsg->StationNo);
+#ifdef BD_SQLITE
+	sprintf(SlqStr,"select StationName,Longitude,Latitude,BusPits from Stations where StationID = %d",inmsg->StationNo);		
+#else
+	sprintf(SlqStr,"select StationName,Longitude,Latitude,BusPits from ptc.dbo.Stations where StationID = %d",inmsg->StationNo);		
+#endif
 	BindColNumber = dbSQLExecDirect(hstmt,SlqStr);
 	if(BindColNumber == -1 || BindColNumber != 4)
 		return GetSQLError(hstmt);
@@ -2278,9 +2339,13 @@ void BusStatusProc(BusStatus *pMsg)
 	memset(SqlString,0,1024);
 	memset(timestr,0,20);
 	sprintf(timestr,"%02d%02d%02d%02d%02d%02d",pMsg->Year,pMsg->Month,pMsg->Day,pMsg->Hour,pMsg->Minute,pMsg->Second);
-	
+#ifdef BD_SQLITE
+	sprintf(SqlString,"insert into BusInservices values(%d,%lf,%lf,%d,%f,%d,\'%s\',%d)",pMsg->BusNo,pMsg->Longitude,                  \
+		               pMsg->Latitude,pMsg->Direction,pMsg->Velocity,pMsg->Passengers,timestr,5);
+#else
 	sprintf(SqlString,"insert into ptc.dbo.BusInservices values(%d,%lf,%lf,%d,%f,%d,\'%s\',%d)",pMsg->BusNo,pMsg->Longitude,          \
 		               pMsg->Latitude,pMsg->Direction,pMsg->Velocity,pMsg->Passengers,timestr,5);
+#endif	
 	
 	DoUpdate(SqlString,30);
 	
@@ -2299,83 +2364,19 @@ void StationStatusProc(StationStatus *pMsg)
 	pclock = localtime(&curtime);
 	memset(timestr,0,20);
 	sprintf(timestr,"%02d%02d%02d%02d%02d%02d",pclock->tm_year-100,pclock->tm_mon+1,pclock->tm_mday,pclock->tm_hour,pclock->tm_min,pclock->tm_sec);
-	
+#ifdef BD_SQLITE
+ 	sprintf(SqlString,"insert into StationStatus values(%d,%d,%d,%d,%d,%d,%d,%d,\'%s\')",pMsg->StationNo,pMsg->BusPits,                 \
+		               pMsg->BusWaiting,pMsg->BusId1,pMsg->BusId2,pMsg->BusId3,pMsg->BusId4,pMsg->BusId5,timestr);
+#else
  	sprintf(SqlString,"insert into ptc.dbo.StationStatus values(%d,%d,%d,%d,%d,%d,%d,%d,\'%s\')",pMsg->StationNo,pMsg->BusPits,          \
 		               pMsg->BusWaiting,pMsg->BusId1,pMsg->BusId2,pMsg->BusId3,pMsg->BusId4,pMsg->BusId5,timestr);
+#endif	
 
 	DoUpdate(SqlString,30);
 
 	return;
 }
 
-
-/*
-void AlarmMsgProc(AlarmMsg *pAlarmMsg)
-{
-	char SqlString[1024];
-	time_t curtime;
-	struct tm *pclock;
-	char timestr[20];
-
- 	memset(SqlString,0,1024);
-	curtime =time(NULL);
-	pclock = localtime(&curtime);
-	memset(timestr,0,20);
-	sprintf(timestr,"%02d%02d%02d%02d%02d%02d",pclock->tm_year-100,pclock->tm_mon+1,pclock->tm_mday,pclock->tm_hour,pclock->tm_min,pclock->tm_sec);
-
- 	sprintf(SqlString,"insert into aspdb.dbo.±¨¾¯±í(GateNo,AlarmNo,Time) values(%d,%d,\'%s\')",pAlarmMsg->gateNo,pAlarmMsg->AlarmId,timestr);
-
-	DoUpdate(SqlString,30);
-
-	return;
-}
-void QRFuncProc(QRFunc *pQrFunc)
-{
-	time_t t;
-	char filename[300];
-	char SqlString[1024];
-	char disp[300];
-
-	memset(filename,0,100);
-	GetPrivateProfileString("GENERAL","QRPath","",filename,300, __CONFIG_FILE__);
-	time(&t); 
-	sprintf(filename+strlen(filename),"\\%ld.bmp",t);//ÎÄ¼þÃû
-
-	//QRGeneration(pQrFunc->QRString,filename);//µ÷ÓÃ¶þÎ¬ÂëÉú³É³ÌÐò
-
-	memset(disp,0,100);
-	sprintf(disp,"Just before writing to database: len=%d, %s",pQrFunc->Len,pQrFunc->QRString);
-	__debugWindows(disp);
-
-	AdjustQRStr(pQrFunc);//add for sql string including '
-	memset(disp,0,300);
-	sprintf(disp,"Just before writing to database,modified: len=%d, %s",pQrFunc->Len,pQrFunc->QRString);
-	__debugWindows(disp);
-
-	memset(SqlString,0,1024);
-	sprintf(SqlString,"insert into aspdb.dbo.¶þÎ¬Âë±í(QR,QRPicPos,Count,Expiration,Status) values('%s','%s',%d,'%s',%d)",     \
-		               pQrFunc->QRString,filename,100000,"20301231",1);
-	__debugWindows(SqlString);
-
-	DoUpdate(SqlString,30);
-
-	return;
-}
-
-
-void SysStatusProc(SysStatus *pStatus)
-{
-	char SqlString[1024];
-
-	memset(SqlString,0,1024);
-	sprintf(SqlString,"insert into aspdb.dbo.ÃÅ×´Ì¬±í(GateNo,GateStatus,SysStatus,BatteryStatus,PowerStatus,GPRSStatus) values(%d,%d,%d,%d,%d,%d)",   \
-		               1,pStatus->gates[0],pStatus->sysState,pStatus->batteryState,pStatus->powerState,pStatus->gprsState);
-
-	DoUpdate(SqlString,30);
-	
-	return;
-}
-*/
 BYTE FindCommIndex(DWORD TargetIP,BYTE TargetTaskId)
 {
 	BYTE i;
@@ -2934,8 +2935,7 @@ BOOL DoConnect(char *szServer)
 		return FALSE;
 	}
 
-	sprintf(sServer,szServer);
-	sprintf(sServer,"WIN-JC8GFSMTV3H\\SQLEXPRESS");
+	sprintf(sServer,szServer);//this line just for most SQL Server
 
 	retcode = SQLAllocEnv(&henv);
 	if(retcode == SQL_ERROR) 
@@ -2952,7 +2952,12 @@ BOOL DoConnect(char *szServer)
 	}
 	
 	SQLSetConnectOption(hdbc, SQL_LOGIN_TIMEOUT, 10);
+#ifdef BD_SQLITE
+//	sprintf(szConnStrIn,"DRIVER={SQLite3 ODBC Driver}; Database=c:\\sqlite3\\ptc.db; LongNames=0; Timeout=1000; NoTXN=0; SyncPragma=NORMAL; StepAPI=0;");
+	sprintf(szConnStrIn,"DRIVER={SQLite3 ODBC Driver}; Database=c:\\sqlite3\\ptc.db;");
+#else
 	sprintf(szConnStrIn , "DRIVER={SQL Server};SERVER=%s;UID=ptcuser000;PWD=%s", sServer, "ptcsa000");
+#endif
 
 	retcode = SQLDriverConnect(hdbc,
 			 NULL,
@@ -2970,7 +2975,11 @@ BOOL DoConnect(char *szServer)
 	else
 	{
 		memset(disp,0,200);
+#ifdef BD_SQLITE
+		sprintf(disp,"Has Connected to SQLITE");
+#else
 		sprintf(disp,"Has Connected to Database Server:%s",sServer);
+#endif
 		DebugWindow(disp);
 	}
 #endif
@@ -3131,32 +3140,41 @@ BOOL Initdb(void)
 	register int i;
 	char DbIpSting[100];
 	DWORD ret;
+	BYTE IsExp = 0;
 	UINT8 iniOk = TRUE;
 
-	memset(DbIpSting,0x00,100);
-	ret = GetPrivateProfileString("GENERAL","DBAddr","127.0.0.1",DbIpSting,100, __CONFIG_FILE__);
-
-	if(ret > 0 && ret <= 15)
-	{
-		for(i = 0;i < (int)ret; i++)
-		{
-			if(!(DbIpSting[i] == '.' || (DbIpSting[i] <= '9' && DbIpSting[i] >= '0') ))
-			{
-				iniOk = FALSE;
-				break;
-			}
-		}
-
-		if(DbIpSting[0] == '.' || DbIpSting[0] >'2')
-			iniOk = FALSE;
-	}
-	else
-		iniOk = FALSE;
-
-	if(iniOk == FALSE)
+	IsExp = GetPrivateProfileInt("GENERAL","IsExpress",0, __CONFIG_FILE__);
+	if(IsExp == 0)//is SQL Server express version?
 	{
 		memset(DbIpSting,0,100);
-		strcpy(DbIpSting,"127.0.0.1");
+		ret = GetPrivateProfileString("GENERAL","DBAddr","127.0.0.1",DbIpSting,100, __CONFIG_FILE__);
+
+		if(ret > 0 && ret <= 15)
+		{
+			for(i = 0;i < (int)ret; i++)
+			{
+				if(!(DbIpSting[i] == '.' || (DbIpSting[i] <= '9' && DbIpSting[i] >= '0') ))
+				{
+					iniOk = FALSE;
+					break;
+				}
+			}
+
+			if(DbIpSting[0] == '.' || DbIpSting[0] >'2')
+				iniOk = FALSE;
+		}
+		else
+			iniOk = FALSE;
+
+		if(iniOk == FALSE)
+		{
+			memset(DbIpSting,0,100);
+			strcpy(DbIpSting,"127.0.0.1");
+		}
+	}
+	else
+	{
+		ret = GetPrivateProfileString("GENERAL","Express","WIN7_001\\SQLEXPRESS",DbIpSting,100, __CONFIG_FILE__);
 	}
 
 	if(!DoConnect(DbIpSting))
@@ -3181,6 +3199,7 @@ BYTE GetNotify(void)
 	char params[MAX_QRSTR_LEN];
 	int DevId,cmdno,type;
 	BYTE index;
+	BYTE HaveCmd = 0;
 
    	if(hdbc == NULL)
 		return DB_SQL_GENERALLYERROR;
@@ -3190,7 +3209,11 @@ BYTE GetNotify(void)
 		return DB_SQL_GENERALLYERROR;
 
 	memset(SlqStr,0,300);
+#ifdef BD_SQLITE
+	sprintf(SlqStr,"select DevId,Cmdno,Params,Type from Notification where Status = 1");
+#else
 	sprintf(SlqStr,"select DevId,Cmdno,Params,Type from ptc.dbo.Notification where Status = 1");
+#endif
 	BindColNumber = dbSQLExecDirect(hstmt,SlqStr);
 	if(BindColNumber == -1 || BindColNumber != 4)
 		return GetSQLError(hstmt);
@@ -3212,6 +3235,7 @@ BYTE GetNotify(void)
 		if(retcode == SQL_NO_DATA_FOUND)
 			break;
 
+		HaveCmd = 1;
 		rtrim(sqlResult[0]);
 		rtrim(sqlResult[1]);
 		rtrim(sqlResult[2]);
@@ -3256,9 +3280,16 @@ BYTE GetNotify(void)
 
 	SQLFreeStmt(hstmt, SQL_DROP);
 
-	memset(SlqStr,0,300);
-	sprintf(SlqStr,"update ptc.dbo.Notification set Status=0 where status=1");
-	DoUpdate(SlqStr,30);
+	if(HaveCmd == 1)//ÓÐÃüÁîÏÂ·¢£¿
+	{
+		memset(SlqStr,0,300);
+#ifdef BD_SQLITE
+		sprintf(SlqStr,"update Notification set Status=0 where status=1");
+#else
+		sprintf(SlqStr,"update ptc.dbo.Notification set Status=0 where status=1");
+#endif
+		DoUpdate(SlqStr,30);
+	}
 
 	return DB_SQL_SUCCESS;
 }
