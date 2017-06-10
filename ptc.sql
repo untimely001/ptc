@@ -206,6 +206,9 @@ CREATE TABLE [dbo].[Notification](
 ) ON [PRIMARY]
 GO
 
+
+/* SQL Server中,表中的数据导出为insert语句 的存储过程
+   使用方法：   exec UspOutputData 表名   */
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -351,30 +354,30 @@ insert bustypes(BusTypeID,BusTypeName,Power,BusLoad) values(3,'大宇', 160,60)
 insert bustypes(BusTypeID,BusTypeName,Power,BusLoad) values(4,'大众 ',130,50)
 insert bustypes(BusTypeID,BusTypeName,Power,BusLoad) values(5,'丰田 ',120,50)
 
-insert buses(BusID,NumberPlate,BusLineID,BusType,DepRate,Price) values(	1,N'苏A00001',1	,1,0.9,100)
-insert buses(BusID,NumberPlate,BusLineID,BusType,DepRate,Price) values(	2,N'苏A00002',1	,1,0.9,100)
-insert buses(BusID,NumberPlate,BusLineID,BusType,DepRate,Price) values(	3,N'苏A00003',1	,2,0.8,90)
-insert buses(BusID,NumberPlate,BusLineID,BusType,DepRate,Price) values(	4,N'苏A00004',1	,4,0.7,110)
-insert buses(BusID,NumberPlate,BusLineID,BusType,DepRate,Price) values(	5,N'苏A00005',1	,3,1,80	)
-insert buses(BusID,NumberPlate,BusLineID,BusType,DepRate,Price) values(	6,N'苏A00006',2	,1,0.9,111)
-insert buses(BusID,NumberPlate,BusLineID,BusType,DepRate,Price) values(	7,N'苏A00007',2	,5,0.9,120)
-insert buses(BusID,NumberPlate,BusLineID,BusType,DepRate,Price) values(	8,N'苏A00008',2	,2,0.5,122)
-insert buses(BusID,NumberPlate,BusLineID,BusType,DepRate,Price) values(	9,N'苏A00009',2	,3,0.9,79)
+insert buses(BusID,NumberPlate,BusLineID,BusType,DepRate,Price) values(	1,N'苏A00001',1,1,0.9,100)
+insert buses(BusID,NumberPlate,BusLineID,BusType,DepRate,Price) values(	2,N'苏A00002',1,1,0.9,100)
+insert buses(BusID,NumberPlate,BusLineID,BusType,DepRate,Price) values(	3,N'苏A00003',1,2,0.8,90)
+insert buses(BusID,NumberPlate,BusLineID,BusType,DepRate,Price) values(	4,N'苏A00004',1,4,0.7,110)
+insert buses(BusID,NumberPlate,BusLineID,BusType,DepRate,Price) values(	5,N'苏A00005',1,3,1,80	)
+insert buses(BusID,NumberPlate,BusLineID,BusType,DepRate,Price) values(	6,N'苏A00006',2,1,0.9,111)
+insert buses(BusID,NumberPlate,BusLineID,BusType,DepRate,Price) values(	7,N'苏A00007',2,5,0.9,120)
+insert buses(BusID,NumberPlate,BusLineID,BusType,DepRate,Price) values(	8,N'苏A00008',2,2,0.5,122)
+insert buses(BusID,NumberPlate,BusLineID,BusType,DepRate,Price) values(	9,N'苏A00009',2,3,0.9,79)
 insert buses(BusID,NumberPlate,BusLineID,BusType,DepRate,Price) values(	10,N'苏A00010',3,1,0.9,111)
 insert buses(BusID,NumberPlate,BusLineID,BusType,DepRate,Price) values(	11,N'苏A00011',3,2,0.8,100)
 insert buses(BusID,NumberPlate,BusLineID,BusType,DepRate,Price) values(	12,N'苏A00012',3,5,0.7,90)
 insert buses(BusID,NumberPlate,BusLineID,BusType,DepRate,Price) values(	13,N'苏A00013',3,4,0.6,130)
 
 
-insert stations(StationID,StationName,longitude,latitude,BusPits) values(1,'大厂',0  ,0.2,5)
+insert stations(StationID,StationName,longitude,latitude,BusPits) values(1,'大厂',0,0.2,5)
 insert stations(StationID,StationName,longitude,latitude,BusPits) values(2,'杨庄',0.1,0.2,3)
 insert stations(StationID,StationName,longitude,latitude,BusPits) values(3,'丁解',0.2,0.2,2)
 insert stations(StationID,StationName,longitude,latitude,BusPits) values(4,'龙山',0.3,0.2,4)
-insert stations(StationID,StationName,longitude,latitude,BusPits) values(5,'高新区',0.4	,0.2,2)
+insert stations(StationID,StationName,longitude,latitude,BusPits) values(5,'高新区',0.4,0.2,2)
 insert stations(StationID,StationName,longitude,latitude,BusPits) values(6,'桃园',0.5,0.2,3)
 insert stations(StationID,StationName,longitude,latitude,BusPits) values(7,'泰山新村',0.6,0.2,5)
 insert stations(StationID,StationName,longitude,latitude,BusPits) values(8,'盘城',0.1,0	,3)
-insert stations(StationID,StationName,longitude,latitude,BusPits) values(9,'杨庄西',0.1	,0.1,4)
+insert stations(StationID,StationName,longitude,latitude,BusPits) values(9,'杨庄西',0.1,0.1,4)
 insert stations(StationID,StationName,longitude,latitude,BusPits) values(10,'杨庄东',0.1,0.3,3)
 insert stations(StationID,StationName,longitude,latitude,BusPits) values(11,'南钢',0.1,0.4,5)
 insert stations(StationID,StationName,longitude,latitude,BusPits) values(12,'高新二路',0.4,0,2)
@@ -405,8 +408,8 @@ insert buslinestations(BusLineID,StopSeq,StationID) values(3,4,14)
 insert buslinestations(BusLineID,StopSeq,StationID) values(3,5,15)
 
 
-insert users(UserID,UserType,EquipID,UserName,Password) values(	1,1,1,'yangzhuang','yangzhuang')
-insert users(UserID,UserType,EquipID,UserName,Password) values(	2,1,2,'yanjiang','yanjiang')
+insert users(UserID,UserType,EquipID,UserName,Password) values(1,1,1,'yangzhuang','yangzhuang')
+insert users(UserID,UserType,EquipID,UserName,Password) values(2,1,2,'yanjiang','yanjiang')
 insert users(UserID,UserType,EquipID,UserName,Password) values(	3,2,3,'daben','daben')
 insert users(UserID,UserType,EquipID,UserName,Password) values(	4,2,4,'dayu','dayu')
 insert users(UserID,UserType,EquipID,UserName,Password) values(	5,3,5,'xiaoli','xiaoli')
