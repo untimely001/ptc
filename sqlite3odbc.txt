@@ -1,0 +1,22 @@
+
+1.sqlite3.rar解压到某个目录里，如c:\sqlite3即可，不用安装。使用方法请查询。
+
+2.sqliteodbc.exe是sqlite3 odbc驱动的安装程序，虽然安装时显示的是sqlite2；
+  双击安装驱动，不需要拷贝sqlite3.dll文件。
+
+3.可使用navicat进行管理。这意味着，如果仅仅使用程序访问sqlite3，第1步可以省略。
+
+4.sqlite3仅为sql92的子集，功能有限。
+
+5.sqlite 不需要用户密码。但可以加密 存储的内容，可以使用sqlcipher
+
+
+5.每个语句的末尾必须加分号（;）否则出错；插入语句必须写成 insert into的形式。
+
+6. odbc连接串： "DRIVER={SQLite3 ODBC Driver}; Database=c:\\sqlite3\\ptc.db;"
+           或："DRIVER={SQLite3 ODBC Driver}; Database=c:\\sqlite3\\ptc.db; LongNames=0; Timeout=1000; NoTXN=0; SyncPragma=NORMAL; StepAPI=0;"
+
+7. sql语句不需要写成 [数据库名].[dbo].[表名]的形式，直接写成 [表名] 就可以了
+     如：select DevId,Cmdno,Params,Type from Notification where Status = 1
+
+
