@@ -56,5 +56,6 @@ target/
 build/
 Debug/
 Release/
-
+*.plg
+*.opt
 
